@@ -53,4 +53,19 @@ CALL add_column_if_not_exists('kg_graph', 'storage_engine_configured', "TINYINT 
 -- Type: TINYINT
 CALL add_column_if_not_exists('kg_graph', 'graph_space_created', "TINYINT DEFAULT 0 COMMENT 'Graph space created: 0=no, 1=yes'")//
 
+-- ---- kg_transform_task: graph_id ----
+-- Required by: KgTransformTask.graphId
+-- Type: BIGINT
+CALL add_column_if_not_exists('kg_transform_task', 'graph_id', "BIGINT DEFAULT 1 COMMENT 'Associated graph ID'")//
+
+-- ---- kg_transform_task: source_type ----
+-- Required by: KgTransformTask.sourceType
+-- Type: VARCHAR(32)
+CALL add_column_if_not_exists('kg_transform_task', 'source_type', "VARCHAR(32) COMMENT 'Source file type: csv, json, xml'")//
+
+-- ---- kg_corpus: content ----
+-- Required by: KgCorpus.content (LLM extraction needs text content)
+-- Type: LONGTEXT
+CALL add_column_if_not_exists('kg_corpus', 'content', "LONGTEXT COMMENT 'Corpus text content for LLM extraction'")//
+
 DELIMITER ;

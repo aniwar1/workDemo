@@ -11,6 +11,7 @@ public class KgTransformTask {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String name;
+    private Long graphId;
     private String sourceType;
     private String targetFormat;
     private String inputPath;

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "语料管理")
@@ -61,6 +62,18 @@ public class CorpusController extends ServiceImpl<KgCorpusMapper, KgCorpus> {
     @PutMapping("/{id}")
     public R<Void> update(@PathVariable Long id, @RequestBody KgCorpus corpus) {
         corpus.setId(id);
+        kgCorpusService.updateById(corpus);
+        return R.ok();
+    }
+
+    @Operation(summary = "设置语料文本内容")
+    @PutMapping("/{id}/content")
+    public R<Void> setContent(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        KgCorpus corpus = kgCorpusService.getById(id);
+        if (corpus == null) {
+            return R.fail("语料不存在");
+        }
+        corpus.setContent(body.get("content"));
         kgCorpusService.updateById(corpus);
         return R.ok();
     }
@@ -110,6 +123,11 @@ public class CorpusController extends ServiceImpl<KgCorpusMapper, KgCorpus> {
             if (graphId != null) {
                 corpus.setGraphId(graphId);
             }
+
+            if ("txt".equalsIgnoreCase(fileType)) {
+                corpus.setContent(new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8));
+            }
+
             kgCorpusService.save(corpus);
             return R.ok(corpus);
         } catch (IOException e) {

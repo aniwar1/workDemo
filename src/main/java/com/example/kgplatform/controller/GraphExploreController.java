@@ -73,7 +73,7 @@ public class GraphExploreController {
     public R<List<KgNodeInstance>> searchNodes(@RequestParam String keyword,
                                                 @RequestParam(required = false) Long graphId) {
         LambdaQueryWrapper<KgNodeInstance> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like("node_name", keyword);
+        wrapper.like(KgNodeInstance::getNodeName, keyword);
         if (graphId != null) {
             wrapper.eq(KgNodeInstance::getGraphId, graphId);
         }

@@ -16,6 +16,7 @@ public class KgCorpus {
     private Long fileSize;
     private String status;
     private Long graphId;
+    private String content;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

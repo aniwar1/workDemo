@@ -9,6 +9,7 @@ import com.example.kgplatform.mapper.KgExtractTaskMapper;
 import com.example.kgplatform.service.KgExtractTaskService;
 import com.example.kgplatform.service.Neo4jService;
 import com.example.kgplatform.service.KgCorpusService;
+import com.example.kgplatform.service.DashScopeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +25,14 @@ public class ExtractController {
     private final KgExtractTaskService kgExtractTaskService;
     private final Neo4jService neo4jService;
     private final KgCorpusService corpusService;
+    private final DashScopeService dashScopeService;
 
-    public ExtractController(KgExtractTaskService kgExtractTaskService, Neo4jService neo4jService, KgCorpusService corpusService) {
+    public ExtractController(KgExtractTaskService kgExtractTaskService, Neo4jService neo4jService,
+                             KgCorpusService corpusService, DashScopeService dashScopeService) {
         this.kgExtractTaskService = kgExtractTaskService;
         this.neo4jService = neo4jService;
         this.corpusService = corpusService;
+        this.dashScopeService = dashScopeService;
     }
 
     @Operation(summary = "分页查询抽取任务")
@@ -67,7 +71,7 @@ public class ExtractController {
         if ("running".equals(task.getStatus())) {
             return R.fail("任务已在运行中");
         }
-        kgExtractTaskService.startExtractAsync(id, neo4jService, corpusService);
+        kgExtractTaskService.startExtractAsync(id, neo4jService, corpusService, dashScopeService);
         return R.ok();
     }
 
