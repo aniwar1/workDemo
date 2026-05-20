@@ -1,0 +1,98 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import Layout from '@/layout/index.vue'
+import Login from '@/views/login/index.vue'
+
+const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { title: '登录' }
+  },
+  {
+    path: '/',
+    component: Layout,
+    redirect: '/home',
+    children: [
+      { path: 'home', name: 'Home', component: () => import('@/views/home/index.vue'), meta: { title: '系统首页', icon: 'House' } },
+    ]
+  },
+  {
+    path: '/system',
+    component: Layout,
+    meta: { title: '平台管理', icon: 'Setting' },
+    children: [
+      { path: 'user', name: 'UserManage', component: () => import('@/views/system/userManage.vue'), meta: { title: '用户管理' } },
+      { path: 'role', name: 'RoleManage', component: () => import('@/views/system/roleManage.vue'), meta: { title: '角色管理' } },
+      { path: 'password', name: 'PasswordEdit', component: () => import('@/views/system/passwordEdit.vue'), meta: { title: '修改密码' } },
+    ]
+  },
+  {
+    path: '/kg',
+    component: Layout,
+    meta: { title: '图谱项目管理', icon: 'Connection' },
+    children: [
+      { path: 'graph', name: 'GraphManage', component: () => import('@/views/kgProject/graphManage.vue'), meta: { title: '知识图谱管理' } },
+      { path: 'model', name: 'ModelManage', component: () => import('@/views/kgProject/modelManage.vue'), meta: { title: '图谱模型管理' } },
+    ]
+  },
+  {
+    path: '/data',
+    component: Layout,
+    meta: { title: '知识抽取与转化', icon: 'DataAnalysis' },
+    children: [
+      { path: 'transform', name: 'StructTransform', component: () => import('@/views/dataTransform/structTransform.vue'), meta: { title: '（半）结构化数据转化' } },
+      { path: 'extract-intro', name: 'ExtractIntro', component: () => import('@/views/dataTransform/extractIntro.vue'), meta: { title: '知识抽取与转化' } },
+    ]
+  },
+  {
+    path: '/dl',
+    component: Layout,
+    meta: { title: '深度学习知识抽取', icon: 'Cpu' },
+    children: [
+      { path: 'corpus', name: 'CorpusManage', component: () => import('@/views/dlExtract/corpusManage.vue'), meta: { title: '语料管理' } },
+      { path: 'annotation-auth', name: 'AnnotationAuth', component: () => import('@/views/dlExtract/annotationAuth.vue'), meta: { title: '标注授权' } },
+      { path: 'annotate', name: 'DataAnnotate', component: () => import('@/views/dlExtract/dataAnnotate.vue'), meta: { title: '数据标注' } },
+      { path: 'annotation-manage', name: 'AnnotationManage', component: () => import('@/views/dlExtract/annotationManage.vue'), meta: { title: '标注管理' } },
+      { path: 'train', name: 'ModelTrainManage', component: () => import('@/views/dlExtract/modelTrainManage.vue'), meta: { title: '模型训练管理' } },
+      { path: 'effect', name: 'ModelEffect', component: () => import('@/views/dlExtract/modelEffect.vue'), meta: { title: '模型训练效果' } },
+      { path: 'extract', name: 'KnowledgeExtract', component: () => import('@/views/dlExtract/knowledgeExtract.vue'), meta: { title: '知识抽取' } },
+    ]
+  },
+  {
+    path: '/llm',
+    component: Layout,
+    meta: { title: '基于LLM知识抽取', icon: 'MagicStick' },
+    children: [
+      { path: 'extract', name: 'LlmExtract', component: () => import('@/views/llmExtract/index.vue'), meta: { title: 'LLM知识抽取' } },
+    ]
+  },
+  {
+    path: '/explore',
+    component: Layout,
+    meta: { title: '图谱实例管理', icon: 'Search' },
+    children: [
+      { path: 'graph', name: 'GraphExplore', component: () => import('@/views/graphExplore/index.vue'), meta: { title: '知识图谱探索' } },
+    ]
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.path !== '/login') {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      next('/login')
+    } else {
+      next()
+    }
+  } else {
+    next()
+  }
+})
+
+export default router

@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: kg-platform
+  datasource:
+    url: jdbc:mysql://localhost:3306/kg_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useSSL=false
+    username: root
+    password: zhan20021204
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+  sql:
+    init:
+      mode: never
+
+server:
+  port: 8090
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.example.kgplatform.entity
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+jwt:
+  secret: KgPlatformSecretKey2026DoNotShareWithAnyone12345678901234567890
+  expiration: 86400000
+  header: Authorization
+  token-prefix: Bearer
+
+knife4j:
+  enable: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    com.example.kgplatform: debug
