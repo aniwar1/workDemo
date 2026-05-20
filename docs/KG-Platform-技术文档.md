@@ -19,6 +19,8 @@ KG Platform（知识图谱管理平台）是一个面向知识图谱构建与管
 | **后端框架** | Spring Boot | 3.3.0 |
 | **ORM** | MyBatis-Plus | 3.5.6 |
 | **数据库** | MySQL 8.0 | 8.0.44 |
+| **图数据库** | Neo4j | — |
+| **对象存储** | MinIO | — |
 | **安全** | Spring Security + JWT | — |
 | **API 文档** | Knife4j / SpringDoc OpenAPI | — |
 | **工具库** | Hutool | 5.8.26 |
@@ -45,14 +47,17 @@ d:\demo\
 │   │   ├── SecurityConfig.java          # Spring Security 配置
 │   │   ├── CorsConfig.java              # CORS 跨域配置
 │   │   ├── JwtConfig.java               # JWT 参数配置
+│   │   ├── MinioConfig.java             # MinIO 对象存储配置
+│   │   ├── Neo4jConfig.java             # Neo4j 图数据库配置
 │   │   ├── DataInitializer.java         # 启动数据初始化
 │   │   ├── MyBatisMetaObjectHandler.java
 │   │   └── Knife4jConfig.java            # API 文档配置
-│   ├── controller/                        # 12 个控制器
-│   ├── service/                          # 服务层
+│   ├── controller/                        # 14 个控制器（含 MinioController）
+│   ├── service/                          # 服务层（含 MinioService、Neo4jService）
 │   ├── mapper/                           # MyBatis-Plus Mapper
-│   ├── entity/                           # 实体类（12 个）
+│   ├── entity/                           # 实体类（15 个，含 Neo4jEntity、Neo4jRelation）
 │   ├── dto/                              # 数据传输对象
+│   ├── repository/                       # Neo4j 数据访问层
 │   └── security/
 │       ├── JwtAuthFilter.java            # JWT 认证过滤器
 │       └── UserDetailsServiceImpl.java
@@ -97,16 +102,35 @@ Spring Boot (localhost:8090)
     └─ DispatcherServlet
           │
           ▼
-    Controller（12 个）
+    Controller（14 个）
           │
-          ▼
-    Service → Mapper → MySQL
+          ├──► Service → Mapper → MySQL
+          ├──► MinioService → MinIO 对象存储
+          └──► Neo4jService → Neo4j 图数据库
           │
           ▼
     R<T> 统一响应 { code, msg, data }
 ```
 
-### 3.2 认证流程
+### 3.2 图数据库存储架构
+
+```
+MySQL (元数据存储)
+│  kg_graph    — 图谱项目信息（名称、负责人、存储引擎配置等）
+│  kg_node_instance — 节点元数据
+│  kg_edge_instance  — 边元数据
+│
+└─► Neo4j (实体关系存储)
+   │  Entity 节点 — 存储图谱实体（人物、机构、地点等）
+   │  RELATION 边 — 存储实体间关系
+   │
+   └─► MinIO (文件存储)
+      │  语料文件上传
+      │  模型文件存储
+      │  导出结果存储
+```
+
+### 3.3 认证流程
 
 ```
 登录 POST /api/auth/login
@@ -157,7 +181,7 @@ JwtAuthFilter 验证并注入 SecurityContext
 | POST | `/login` | 用户登录 | 否 |
 | POST | `/logout` | 用户退出 | 是 |
 | GET | `/info` | 获取当前用户信息 | 是 |
-| POST | `/password` | 修改密码 | 是 |
+| POST | `/password` | 修改密码（需填旧密码） | 是 |
 | POST | `/register` | 用户注册 | 否 |
 
 **登录请求体：**
@@ -287,6 +311,7 @@ JwtAuthFilter 验证并注入 SecurityContext
 | PUT | `/{id}` | 修改用户 | 是 |
 | DELETE | `/{id}` | 删除用户 | 是 |
 | POST | `/{id}/reset-password` | 重置密码为 123456 | 是 |
+| POST | `/{id}/password` | 管理员修改指定用户密码（无需旧密码） | 是 |
 
 #### 角色管理 `/api/system/role`
 
@@ -340,6 +365,42 @@ JwtAuthFilter 验证并注入 SecurityContext
 | POST | `/file/avatar` | 上传用户头像（仅图片，最大2MB） | 是 |
 | GET | `/file/avatar/{filename}` | 获取头像图片 | 否 |
 
+#### MinIO 文件管理 `/api/file/minio`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/file/minio/upload` | 上传文件到 MinIO | 是 |
+| GET | `/file/minio/presigned` | 获取预签名下载地址 | 是 |
+| DELETE | `/file/minio` | 删除文件 | 是 |
+| GET | `/file/minio/exists` | 检查文件是否存在 | 是 |
+
+**上传请求参数：**
+- `file`（必填）：Multipart 文件
+- `prefix`（选填）：存储路径前缀，默认 `uploads`
+
+**响应数据：**
+```json
+{ "code": 200, "msg": "success", "data": "http://localhost:9000/kg-platform/uploads/xxx.png" }
+```
+
+#### 管理员修改用户密码 `POST /api/system/user/{id}/password`
+
+**说明**：管理员无需旧密码即可修改任意用户的密码。
+
+**请求体：**
+```json
+{
+  "targetUserId": 2,
+  "newPassword": "newPassword123"
+}
+```
+
+**说明**：
+- `targetUserId` 必须与路径参数 `{id}` 一致，否则返回 "参数不匹配"
+- 新密码最小长度为 6 位（由前端表单验证）
+
+**普通用户修改自己密码**仍使用 `POST /api/auth/password`（需填旧密码）。
+
 ---
 
 ## 五、数据库设计
@@ -347,22 +408,34 @@ JwtAuthFilter 验证并注入 SecurityContext
 ### 5.1 ER 图概览
 
 ```
-sys_user (1)───(N) sys_role
-sys_user (1)───(N) kg_annotation_task
-sys_user (1)───(N) kg_annotation_record
+MySQL（元数据存储）
+├── sys_user (1)───(N) sys_role
+├── sys_user (1)───(N) kg_annotation_task
+├── sys_user (1)───(N) kg_annotation_record
+│
+├── kg_graph (1)───(N) kg_node_instance
+├── kg_graph (1)───(N) kg_edge_instance
+├── kg_graph (1)───(N) kg_corpus
+├── kg_graph (1)───(N) kg_extract_task
+│
+├── kg_model (1)───(N) kg_graph
+├── kg_model (1)───(N) kg_extract_task
+├── kg_model (1)───(N) kg_train_task
+│
+├── kg_corpus (1)───(N) kg_annotation_task
+├── kg_corpus (1)───(N) kg_annotation_record
+├── kg_corpus (1)───(N) kg_train_task
 
-kg_graph (1)───(N) kg_node_instance
-kg_graph (1)───(N) kg_edge_instance
-kg_graph (1)───(N) kg_corpus
-kg_graph (1)───(N) kg_extract_task
+Neo4j（实体关系存储）
+└── Entity 节点 ───(RELATION)───► Entity 节点
+    （按 graphId 分区存储）
 
-kg_model (1)───(N) kg_graph
-kg_model (1)───(N) kg_extract_task
-kg_model (1)───(N) kg_train_task
-
-kg_corpus (1)───(N) kg_annotation_task
-kg_corpus (1)───(N) kg_annotation_record
-kg_corpus (1)───(N) kg_train_task
+MinIO（文件存储）
+└── kg-platform bucket
+    ├── uploads/           — 通用文件
+    ├── corpus/           — 语料文件
+    ├── models/           — 模型文件
+    └── exports/          — 导出结果
 ```
 
 ### 5.2 表结构
@@ -402,10 +475,14 @@ kg_corpus (1)───(N) kg_train_task
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | BIGINT PK | 图谱 ID |
-| name | VARCHAR(128) | 图谱名称 |
-| description | TEXT | 描述 |
+| name | VARCHAR(128) | 项目名称 |
+| description | TEXT | 项目描述 |
+| project_manager | VARCHAR(64) | 项目负责人 |
 | status | VARCHAR(32) | 状态 |
 | model_id | BIGINT | 关联模型 ID |
+| storage_engine | VARCHAR(64) | 存储引擎（nebula/janus/tugraph/neo4j/hugegraph） |
+| storage_engine_configured | TINYINT | 是否已配置存储引擎（0=否，1=是） |
+| graph_space_created | TINYINT | 是否已创建图空间（0=否，1=是） |
 | node_count | INT | 节点数量 |
 | edge_count | INT | 边数量 |
 
@@ -578,6 +655,18 @@ spring.servlet.multipart.enabled: true
 spring.servlet.multipart.max-file-size: 2MB
 file.upload-path: uploads
 
+# MinIO 对象存储配置
+minio.endpoint: http://localhost:9000
+minio.access-key: minioadmin
+minio.secret-key: minioadmin
+minio.bucket: kg-platform
+minio.public-host: http://localhost:9000
+
+# Neo4j 图数据库配置
+neo4j.uri: bolt://localhost:7687
+neo4j.username: neo4j
+neo4j.password: neo4j123456
+
 jwt.secret: KgPlatformSecretKey2026...
 jwt.expiration: 86400000  # 24小时
 
@@ -600,16 +689,103 @@ mybatis-plus.configuration.map-underscore-to-camel-case: true
 
 ---
 
-## 八、部署说明
+## 十、MinIO 对象存储
 
-### 8.1 环境要求
+### 10.1 概述
+
+MinIO 是一个高性能的 S3 兼容对象存储服务，本平台使用 MinIO 存储语料文件、模型文件、导出结果等大文件，与 MySQL 分工明确：MySQL 存储元数据，MinIO 存储实际文件内容。
+
+### 10.2 配置参数
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `minio.endpoint` | MinIO 服务地址 | `http://localhost:9000` |
+| `minio.access-key` | 访问密钥 | `minioadmin` |
+| `minio.secret-key` | 访问密钥 | `minioadmin` |
+| `minio.bucket` | 存储桶名称 | `kg-platform` |
+| `minio.public-host` | 公共访问地址 | `http://localhost:9000` |
+
+### 10.3 存储路径规范
+
+| 前缀 | 用途 |
+|------|------|
+| `uploads/` | 通用上传文件 |
+| `corpus/` | 语料文件 |
+| `models/` | 模型文件 |
+| `exports/` | 导出结果 |
+
+### 10.4 Neo4j 图数据库
+
+#### 10.4.1 概述
+
+Neo4j 是一个高性能的原生图数据库，本平台使用 Neo4j 作为知识图谱的实体关系存储引擎。与 MySQL 的 `kg_node_instance` / `kg_edge_instance` 表互补：MySQL 存储元数据索引，Neo4j 存储实体之间的真实关系网络。
+
+#### 10.4.2 配置参数
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `neo4j.uri` | Neo4j 连接地址 | `bolt://localhost:7687` |
+| `neo4j.username` | 用户名 | `neo4j` |
+| `neo4j.password` | 密码 | `neo4j123456` |
+
+#### 10.4.3 节点模型
+
+`Entity` 节点：对应知识图谱中的实体。
+
+| 属性 | 说明 |
+|------|------|
+| name | 实体名称 |
+| entityType | 实体类型（人物/机构/地点等） |
+| graphId | 所属图谱 ID |
+| properties | 实体属性（JSON） |
+
+#### 10.4.4 关系模型
+
+`RELATION` 关系：连接两个 Entity 节点。
+
+| 属性 | 说明 |
+|------|------|
+| relationType | 关系类型（任职/位于/属于等） |
+| graphId | 所属图谱 ID |
+| properties | 关系属性（JSON） |
+
+---
+
+## 十一、部署说明
+
+### 11.1 环境要求
 
 - JDK 17+
 - Node.js 18+
 - MySQL 8.0+
+- MinIO（对象存储）
+- Neo4j（图数据库）
 - Maven 3.8+
 
-### 8.2 启动方式
+### 11.2 第三方服务启动
+
+**MinIO 启动：**
+```bash
+docker run -d \
+  --name minio \
+  -p 9000:9000 -p 9001:9001 \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  minio/minio server /data --console-address ":9001"
+# Web Console: http://localhost:9001 (minioadmin / minioadmin)
+```
+
+**Neo4j 启动：**
+```bash
+docker run -d \
+  --name neo4j \
+  -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/neo4j123456 \
+  neo4j:latest
+# Browser: http://localhost:7474
+```
+
+### 11.3 启动方式
 
 **方式一：一键启动**
 ```bash
@@ -633,7 +809,7 @@ npm run dev
 # 访问 http://localhost:5173
 ```
 
-### 8.3 初始化数据
+### 11.4 初始化数据
 
 启动时 `DataInitializer` 自动初始化：
 - 3 个默认角色（ADMIN 排序1 / OPERATOR 排序2 / ANNOTATOR 排序3）
@@ -647,6 +823,17 @@ npm run dev
 ## 九、已知问题与修复记录
 
 ### 2026-05-20
+
+#### 新增功能
+
+| 功能 | 说明 |
+|------|------|
+| 管理员修改用户密码 | 管理员可通过「修改密码」页面选择任意用户并设置新密码，无需旧密码 |
+| 知识图谱项目字段扩展 | 新增项目负责人、存储引擎、是否已配置存储引擎、是否已创建图空间等字段 |
+| MinIO 对象存储集成 | 新增 MinIO 文件管理服务，支持语料/模型/导出文件的大规模存储 |
+| Neo4j 图数据库集成 | 新增 Neo4j 图数据库服务，为知识图谱实体关系存储提供基础设施 |
+
+#### Bug 修复
 
 | 问题 | 根因 | 修复方案 |
 |------|------|---------|

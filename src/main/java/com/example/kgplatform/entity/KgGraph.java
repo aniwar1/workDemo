@@ -12,8 +12,13 @@ public class KgGraph {
     private Long id;
     private String name;
     private String description;
+    private String projectManager;
     private String status;
     private Long modelId;
+    private String modelName;
+    private String storageEngine;
+    private Boolean storageEngineConfigured;
+    private Boolean graphSpaceCreated;
     private Integer nodeCount;
     private Integer edgeCount;
     @TableField(fill = FieldFill.INSERT)

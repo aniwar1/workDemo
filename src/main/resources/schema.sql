@@ -50,8 +50,13 @@ CREATE TABLE kg_graph (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Graph ID',
     name VARCHAR(128) NOT NULL COMMENT 'Graph name',
     description TEXT COMMENT 'Description',
+    project_manager VARCHAR(64) COMMENT 'Project manager',
+    model_name VARCHAR(128) COMMENT 'Model name',
     status VARCHAR(32) DEFAULT '1' COMMENT 'Status: 1=active, 0=inactive',
     model_id BIGINT COMMENT 'Model ID',
+    storage_engine VARCHAR(64) COMMENT 'Storage engine: nebula, janus, tugraph, etc.',
+    storage_engine_configured TINYINT DEFAULT 0 COMMENT 'Storage engine configured: 0=no, 1=yes',
+    graph_space_created TINYINT DEFAULT 0 COMMENT 'Graph space created: 0=no, 1=yes',
     node_count INT DEFAULT 0 COMMENT 'Node count',
     edge_count INT DEFAULT 0 COMMENT 'Edge count',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -256,11 +261,45 @@ INSERT INTO kg_model (name, description, schema_col, status) VALUES
 ('医学知识模型', '医学领域知识图谱模型', '{"entityTypes":["疾病","症状","药物","检查","手术"]}', '1');
 
 -- Insert sample graphs
-INSERT INTO kg_graph (name, description, model_id, node_count, edge_count, status) VALUES
-('示例图谱1', '演示用知识图谱', 1, 125, 340, '1'),
-('医学知识图谱', '医学领域知识图谱', 2, 89, 215, '1');
+INSERT INTO kg_graph (name, description, project_manager, model_name, model_id, node_count, edge_count, status) VALUES
+('示例图谱1', '演示用知识图谱', '张三', '通用实体模型', 1, 125, 340, '1'),
+('医学知识图谱', '医学领域知识图谱', '李四', '医学知识模型', 2, 89, 215, '1');
 
 -- Insert sample corpus
 INSERT INTO kg_corpus (name, file_path, file_type, file_size, graph_id, status) VALUES
 ('样本语料1', '/data/corpus/sample1.txt', 'txt', 102400, 1, '1'),
 ('样本语料2', '/data/corpus/sample2.json', 'json', 51200, 1, '1');
+
+-- =========================================
+-- Idempotent Schema Migration
+-- Safe to re-run on existing databases
+-- =========================================
+
+-- Helper: add column if not exists (avoids "Duplicate column" errors)
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS add_column_if_not_exists//
+CREATE PROCEDURE add_column_if_not_exists(
+    IN tbl_name VARCHAR(64),
+    IN col_name VARCHAR(64),
+    IN col_def VARCHAR(256)
+)
+BEGIN
+    DECLARE col_exists INT DEFAULT 0;
+    SELECT COUNT(*) INTO col_exists
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = tbl_name
+      AND COLUMN_NAME = col_name;
+    IF col_exists = 0 THEN
+        SET @sql = CONCAT('ALTER TABLE ', tbl_name, ' ADD COLUMN ', col_name, ' ', col_def);
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END//
+
+-- ---- kg_graph: add project_manager ----
+CALL add_column_if_not_exists('kg_graph', 'project_manager', "VARCHAR(64) COMMENT 'Project manager'")//
+
+DELIMITER ;

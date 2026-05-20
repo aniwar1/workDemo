@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>知识图谱管理</span>
+          <span>知识图谱项目管理</span>
           <el-button type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon>新建图谱
           </el-button>
@@ -11,25 +11,34 @@
       </template>
 
       <div class="search-bar">
-        <el-input v-model="query.keyword" placeholder="搜索图谱名称" clearable @clear="loadData">
+        <el-input v-model="query.keyword" placeholder="搜索项目名称" clearable @clear="loadData">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
         <el-button type="primary" @click="loadData">查询</el-button>
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="图谱名称" />
-        <el-table-column prop="description" label="描述" show-overflow-tooltip />
-        <el-table-column prop="modelId" label="关联模型" />
-        <el-table-column prop="nodeCount" label="节点数" />
-        <el-table-column prop="edgeCount" label="边数" />
-        <el-table-column prop="status" label="状态">
+        <el-table-column prop="name" label="项目名称" />
+        <el-table-column prop="description" label="项目描述" show-overflow-tooltip />
+        <el-table-column prop="projectManager" label="项目负责人" />
+        <el-table-column prop="modelName" label="模型名称" />
+        <el-table-column prop="storageEngine" label="存储引擎" />
+        <el-table-column prop="storageEngineConfigured" label="是否已配置存储引擎" width="140">
           <template #default="{ row }">
-            <el-tag :type="row.status === '1' ? 'success' : 'info'">{{ row.status === '1' ? '运行中' : '已停用' }}</el-tag>
+            <el-tag :type="row.storageEngineConfigured ? 'success' : 'danger'" size="small">
+              {{ row.storageEngineConfigured ? '是' : '否' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" />
+        <el-table-column prop="graphSpaceCreated" label="是否已创建图空间" width="140">
+          <template #default="{ row }">
+            <el-tag :type="row.graphSpaceCreated ? 'success' : 'danger'" size="small">
+              {{ row.graphSpaceCreated ? '是' : '否' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column prop="updateTime" label="更新时间" width="160" />
         <el-table-column label="操作" width="180">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
@@ -48,24 +57,36 @@
       />
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="550px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90">
-        <el-form-item label="图谱名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入图谱名称" />
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="130">
+        <el-form-item label="项目名称" prop="name">
+          <el-input v-model="form.name" placeholder="请输入项目名称" />
         </el-form-item>
-        <el-form-item label="描述" prop="description">
+        <el-form-item label="项目描述" prop="description">
           <el-input v-model="form.description" type="textarea" :rows="3" />
         </el-form-item>
-        <el-form-item label="关联模型" prop="modelId">
+        <el-form-item label="项目负责人" prop="projectManager">
+          <el-input v-model="form.projectManager" placeholder="请输入项目负责人" />
+        </el-form-item>
+        <el-form-item label="模型名称" prop="modelId">
           <el-select v-model="form.modelId" placeholder="请选择模型" style="width: 100%">
             <el-option v-for="m in models" :key="m.id" :label="m.name" :value="m.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio label="1">运行中</el-radio>
-            <el-radio label="0">已停用</el-radio>
-          </el-radio-group>
+        <el-form-item label="存储引擎" prop="storageEngine">
+          <el-select v-model="form.storageEngine" placeholder="请选择存储引擎" style="width: 100%">
+            <el-option label="NebulaGraph" value="nebula" />
+            <el-option label="JanusGraph" value="janus" />
+            <el-option label="TuGraph" value="tugraph" />
+            <el-option label="Neo4j" value="neo4j" />
+            <el-option label="HugeGraph" value="hugegraph" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="是否已配置存储引擎" prop="storageEngineConfigured">
+          <el-switch v-model="form.storageEngineConfigured" />
+        </el-form-item>
+        <el-form-item label="是否已创建图空间" prop="graphSpaceCreated">
+          <el-switch v-model="form.graphSpaceCreated" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -91,9 +112,9 @@ const dialogTitle = ref('')
 const formRef = ref(null)
 
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '' })
-const form = reactive({ id: null, name: '', description: '', modelId: null, status: '1' })
+const form = reactive({ id: null, name: '', description: '', projectManager: '', modelId: null, storageEngine: '', storageEngineConfigured: false, graphSpaceCreated: false })
 
-const rules = { name: [{ required: true, message: '请输入图谱名称', trigger: 'blur' }] }
+const rules = { name: [{ required: true, message: '请输入项目名称', trigger: 'blur' }] }
 
 const loadData = async () => {
   loading.value = true
@@ -112,7 +133,7 @@ const loadModels = async () => {
 }
 
 const handleAdd = () => {
-  Object.assign(form, { id: null, name: '', description: '', modelId: null, status: '1' })
+  Object.assign(form, { id: null, name: '', description: '', projectManager: '', modelId: null, storageEngine: '', storageEngineConfigured: false, graphSpaceCreated: false })
   dialogTitle.value = '新建图谱'
   dialogVisible.value = true
 }
