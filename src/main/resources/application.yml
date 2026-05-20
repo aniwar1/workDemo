@@ -61,19 +61,13 @@ springdoc:
   swagger-ui:
     enabled: true
 
-dashscope:
-  base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-  api-key: sk-8ea0cac2afb94261bf2a70c3bf786a0b
-  model: qwen-plus
-  max-retries: 3
-
 logging:
   level:
     com.example.kgplatform: debug
 
 # DashScope 通义千问 LLM 配置
 dashscope:
-  api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+  api-key: ${DASHSCOPE_API_KEY:sk-8ea0cac2afb94261bf2a70c3bf786a0b}
   model: qwen-plus
   base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
   max-retries: 3
