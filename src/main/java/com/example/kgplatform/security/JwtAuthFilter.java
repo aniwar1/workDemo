@@ -2,7 +2,9 @@ package com.example.kgplatform.security;
 
 import cn.hutool.core.util.StrUtil;
 import com.example.kgplatform.config.JwtConfig;
+import com.example.kgplatform.entity.SysRole;
 import com.example.kgplatform.entity.SysUser;
+import com.example.kgplatform.service.SysRoleService;
 import com.example.kgplatform.service.SysUserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -30,10 +32,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtConfig jwtConfig;
     private final SysUserService sysUserService;
+    private final SysRoleService sysRoleService;
 
-    public JwtAuthFilter(JwtConfig jwtConfig, @Lazy SysUserService sysUserService) {
+    public JwtAuthFilter(JwtConfig jwtConfig, @Lazy SysUserService sysUserService, @Lazy SysRoleService sysRoleService) {
         this.jwtConfig = jwtConfig;
         this.sysUserService = sysUserService;
+        this.sysRoleService = sysRoleService;
     }
 
     @Override
@@ -56,8 +60,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 if (StrUtil.isNotBlank(username) && SecurityContextHolder.getContext().getAuthentication() == null) {
                     SysUser user = sysUserService.getByUsername(username);
                     if (user != null) {
+                        String roleCode = "USER";
+                        if (user.getRoleId() != null) {
+                            SysRole role = sysRoleService.getById(user.getRoleId());
+                            if (role != null) {
+                                roleCode = role.getRoleCode();
+                            }
+                        }
                         List<SimpleGrantedAuthority> authorities = Collections.singletonList(
-                                new SimpleGrantedAuthority("ROLE_" + (user.getRoleId() != null ? "USER" : "USER"))
+                                new SimpleGrantedAuthority("ROLE_" + roleCode)
                         );
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(user, null, authorities);

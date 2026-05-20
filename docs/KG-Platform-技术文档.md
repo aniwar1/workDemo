@@ -327,8 +327,18 @@ JwtAuthFilter 验证并注入 SecurityContext
 
 - `POST /api/auth/login`
 - `POST /api/auth/register`
+- `GET /api/file/avatar/{filename}` — 头像图片（无需认证）
 - `/swagger-ui/**`
 - `/doc.html`（Knife4j）
+
+### 4.5 新增接口
+
+#### 文件管理 `/api/file`
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/file/avatar` | 上传用户头像（仅图片，最大2MB） | 是 |
+| GET | `/file/avatar/{filename}` | 获取头像图片 | 否 |
 
 ---
 
@@ -382,9 +392,10 @@ kg_corpus (1)───(N) kg_train_task
 | role_name | VARCHAR(64) | 角色名称 |
 | role_code | VARCHAR(64) | 角色编码（唯一） |
 | description | VARCHAR(255) | 描述 |
+| sort_order | INT | 排序号（越小越靠前） |
 | status | INT | 状态 |
 
-默认角色：ADMIN、OPERATOR、ANNOTATOR
+默认角色：ADMIN（排序1）、OPERATOR（排序2）、ANNOTATOR（排序3）
 
 #### kg_graph — 知识图谱
 
@@ -563,6 +574,10 @@ kg_corpus (1)───(N) kg_train_task
 server.port: 8090
 
 spring.datasource.url: jdbc:mysql://localhost:3306/kg_platform
+spring.servlet.multipart.enabled: true
+spring.servlet.multipart.max-file-size: 2MB
+file.upload-path: uploads
+
 jwt.secret: KgPlatformSecretKey2026...
 jwt.expiration: 86400000  # 24小时
 
@@ -621,7 +636,7 @@ npm run dev
 ### 8.3 初始化数据
 
 启动时 `DataInitializer` 自动初始化：
-- 3 个默认角色（ADMIN / OPERATOR / ANNOTATOR）
+- 3 个默认角色（ADMIN 排序1 / OPERATOR 排序2 / ANNOTATOR 排序3）
 - 1 个管理员账号（admin / admin123）
 - `kg_model` 表插入 2 条示例模型数据
 - `kg_graph` 表插入 2 条示例图谱数据

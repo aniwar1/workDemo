@@ -20,6 +20,7 @@ public class SysRoleService extends ServiceImpl<SysRoleMapper, SysRole> {
             wrapper.like(SysRole::getRoleName, query.getKeyword())
                    .or().like(SysRole::getRoleCode, query.getKeyword());
         }
+        wrapper.orderByAsc(SysRole::getSortOrder);
         Page<SysRole> result = page(page, wrapper);
         return PageResult.of(result.getTotal(), result.getRecords());
     }

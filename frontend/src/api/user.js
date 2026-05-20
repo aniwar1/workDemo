@@ -23,3 +23,7 @@ export function deleteUser(id) {
 export function resetPassword(id) {
   return request.post(`/system/user/${id}/reset-password`)
 }
+
+export function adminChangePassword(targetUserId, newPassword) {
+  return request.post(`/system/user/${targetUserId}/password`, { targetUserId, newPassword })
+}

@@ -35,6 +35,7 @@ CREATE TABLE sys_role (
     role_name VARCHAR(64) NOT NULL COMMENT 'Role name',
     role_code VARCHAR(64) NOT NULL UNIQUE COMMENT 'Role code',
     description VARCHAR(255) COMMENT 'Description',
+    sort_order INT DEFAULT 0 COMMENT 'Sort order for display',
     status INT DEFAULT 1 COMMENT 'Status: 1=active, 0=disabled',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -237,14 +238,17 @@ CREATE TABLE kg_transform_task (
 -- Initial Data
 -- =========================================
 
--- Insert default role
-INSERT INTO sys_role (role_name, role_code, description, status) VALUES
-('Administrator', 'ADMIN', 'System administrator', 1),
-('Operator', 'OPERATOR', 'Knowledge graph operator', 1),
-('Annotator', 'ANNOTATOR', 'Data annotator', 1);
+-- Insert default roles
+INSERT INTO sys_role (role_name, role_code, description, sort_order, status) VALUES
+('领域专家',   'DOMAIN_EXPERT', '负责知识图谱领域的专业审核与指导', 1, 1),
+('图谱用户',   'GRAPH_USER',    '使用知识图谱进行查询与分析',      2, 1),
+('数据标注员', 'ANNOTATOR',     '对语料数据进行标注与管理',        3, 1),
+('图谱负责人', 'GRAPH_OWNER',   '管理所在领域的知识图谱建设',      4, 1),
+('系统管理员', 'ADMIN',         '系统全部权限',                    5, 1);
 
 -- Insert default admin user
 -- Note: admin user is created by DataInitializer at startup using BCrypt encoding (admin / admin123)
+--       role_id is resolved dynamically from role_code='ADMIN' to avoid hardcoded ID issues
 
 -- Insert sample graph models
 INSERT INTO kg_model (name, description, schema_col, status) VALUES

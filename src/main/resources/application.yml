@@ -1,6 +1,11 @@
 spring:
   application:
     name: kg-platform
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2MB
+      max-request-size: 2MB
   datasource:
     url: jdbc:mysql://localhost:3306/kg_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useSSL=false
     username: root
@@ -14,6 +19,9 @@ spring:
 
 server:
   port: 8090
+
+file:
+  upload-path: uploads
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

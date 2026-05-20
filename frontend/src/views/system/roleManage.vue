@@ -18,17 +18,25 @@
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe>
+        <el-table-column label="序号" width="70" align="center">
+          <template #default="{ $index }">
+            <span class="seq-no">{{ (query.pageNum - 1) * query.pageSize + $index + 1 }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="roleName" label="角色名称" />
         <el-table-column prop="roleCode" label="角色编码" />
-        <el-table-column prop="description" label="描述" />
-        <el-table-column prop="status" label="状态">
+        <el-table-column prop="description" label="描述" show-overflow-tooltip />
+        <el-table-column prop="sortOrder" label="排序号" width="100" align="center" />
+        <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">{{ row.status === 1 ? '正常' : '禁用' }}</el-tag>
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
+              {{ row.status === 1 ? '正常' : '禁用' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" />
-        <el-table-column label="操作" width="180">
+        <el-table-column prop="createTime" label="创建时间" width="180" />
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
@@ -49,13 +57,16 @@
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90">
         <el-form-item label="角色名称" prop="roleName">
-          <el-input v-model="form.roleName" />
+          <el-input v-model="form.roleName" placeholder="请输入角色名称" />
         </el-form-item>
         <el-form-item label="角色编码" prop="roleCode">
-          <el-input v-model="form.roleCode" :disabled="!!form.id" />
+          <el-input v-model="form.roleCode" placeholder="请输入角色编码，如 ADMIN" :disabled="!!form.id" />
+        </el-form-item>
+        <el-form-item label="排序号" prop="sortOrder">
+          <el-input-number v-model="form.sortOrder" :min="0" :max="9999" placeholder="数字越小越靠前" style="width: 100%" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
-          <el-input v-model="form.description" type="textarea" :rows="3" />
+          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入角色描述" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -85,7 +96,7 @@ const dialogTitle = ref('')
 const formRef = ref(null)
 
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '' })
-const form = reactive({ id: null, roleName: '', roleCode: '', description: '', status: 1 })
+const form = reactive({ id: null, roleName: '', roleCode: '', description: '', sortOrder: 0, status: 1 })
 
 const rules = {
   roleName: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
@@ -104,7 +115,7 @@ const loadData = async () => {
 }
 
 const handleAdd = () => {
-  Object.assign(form, { id: null, roleName: '', roleCode: '', description: '', status: 1 })
+  Object.assign(form, { id: null, roleName: '', roleCode: '', description: '', sortOrder: 0, status: 1 })
   dialogTitle.value = '新增角色'
   dialogVisible.value = true
 }
@@ -130,7 +141,7 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (row) => {
-  await ElMessageBox.confirm('确定删除该角色吗？', '提示')
+  await ElMessageBox.confirm('确定删除角色「' + row.roleName + '」吗？', '提示')
   await deleteRole(row.id)
   ElMessage.success('删除成功')
   loadData()
@@ -144,4 +155,5 @@ onMounted(() => loadData())
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
 .search-bar .el-input { width: 300px; }
+.seq-no { color: #909399; font-size: 13px; }
 </style>

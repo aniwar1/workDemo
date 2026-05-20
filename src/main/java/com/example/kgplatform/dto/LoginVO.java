@@ -11,4 +11,5 @@ public class LoginVO {
     private String token;
     private Long roleId;
     private String roleName;
+    private String roleCode;
 }

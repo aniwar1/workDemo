@@ -9,6 +9,7 @@ import com.example.kgplatform.mapper.SysRoleMapper;
 import com.example.kgplatform.service.SysRoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "角色管理")
@@ -36,6 +37,7 @@ public class SysRoleController extends ServiceImpl<SysRoleMapper, SysRole> {
 
     @Operation(summary = "新增角色")
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Void> add(@RequestBody SysRole role) {
         role.setStatus(1);
         sysRoleService.save(role);
@@ -44,6 +46,7 @@ public class SysRoleController extends ServiceImpl<SysRoleMapper, SysRole> {
 
     @Operation(summary = "修改角色")
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Void> update(@PathVariable Long id, @RequestBody SysRole role) {
         role.setId(id);
         sysRoleService.updateById(role);
@@ -52,6 +55,7 @@ public class SysRoleController extends ServiceImpl<SysRoleMapper, SysRole> {
 
     @Operation(summary = "删除角色")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Void> delete(@PathVariable Long id) {
         sysRoleService.removeById(id);
         return R.ok();

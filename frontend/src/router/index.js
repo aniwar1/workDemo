@@ -87,6 +87,13 @@ router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token')
     if (!token) {
       next('/login')
+    } else if (to.path === '/system/role') {
+      const roleCode = JSON.parse(localStorage.getItem('userInfo') || '{}').roleCode
+      if (roleCode !== 'ADMIN') {
+        next('/home')
+      } else {
+        next()
+      }
     } else {
       next()
     }

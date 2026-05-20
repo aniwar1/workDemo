@@ -25,7 +25,7 @@
             <span>平台管理</span>
           </template>
           <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/role">角色管理</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/system/role">角色管理</el-menu-item>
           <el-menu-item index="/system/password">修改密码</el-menu-item>
         </el-sub-menu>
 
@@ -132,6 +132,7 @@ const isCollapsed = ref(false)
 const currentRoute = computed(() => route)
 
 const activeMenu = computed(() => route.path)
+const isAdmin = computed(() => userStore.isAdmin)
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value

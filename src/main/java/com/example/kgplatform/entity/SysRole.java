@@ -13,6 +13,7 @@ public class SysRole {
     private String roleName;
     private String roleCode;
     private String description;
+    private Integer sortOrder;
     private Integer status;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

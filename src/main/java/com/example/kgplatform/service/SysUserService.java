@@ -52,4 +52,11 @@ public class SysUserService extends ServiceImpl<SysUserMapper, SysUser> {
         user.setPassword(passwordEncoder.encode(newPassword));
         return updateById(user);
     }
+
+    public boolean adminUpdatePassword(Long targetUserId, String newPassword) {
+        SysUser user = getById(targetUserId);
+        if (user == null) return false;
+        user.setPassword(passwordEncoder.encode(newPassword));
+        return updateById(user);
+    }
 }

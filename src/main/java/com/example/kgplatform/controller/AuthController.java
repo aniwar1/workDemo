@@ -5,7 +5,9 @@ import com.example.kgplatform.config.JwtConfig;
 import com.example.kgplatform.dto.LoginDTO;
 import com.example.kgplatform.dto.LoginVO;
 import com.example.kgplatform.dto.PasswordDTO;
+import com.example.kgplatform.entity.SysRole;
 import com.example.kgplatform.entity.SysUser;
+import com.example.kgplatform.service.SysRoleService;
 import com.example.kgplatform.service.SysUserService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -23,11 +25,13 @@ import java.util.Date;
 public class AuthController {
 
     private final SysUserService sysUserService;
+    private final SysRoleService sysRoleService;
     private final PasswordEncoder passwordEncoder;
     private final JwtConfig jwtConfig;
 
-    public AuthController(SysUserService sysUserService, PasswordEncoder passwordEncoder, JwtConfig jwtConfig) {
+    public AuthController(SysUserService sysUserService, SysRoleService sysRoleService, PasswordEncoder passwordEncoder, JwtConfig jwtConfig) {
         this.sysUserService = sysUserService;
+        this.sysRoleService = sysRoleService;
         this.passwordEncoder = passwordEncoder;
         this.jwtConfig = jwtConfig;
     }
@@ -61,6 +65,13 @@ public class AuthController {
         vo.setAvatar(user.getAvatar());
         vo.setToken(token);
         vo.setRoleId(user.getRoleId());
+        if (user.getRoleId() != null) {
+            SysRole role = sysRoleService.getById(user.getRoleId());
+            if (role != null) {
+                vo.setRoleName(role.getRoleName());
+                vo.setRoleCode(role.getRoleCode());
+            }
+        }
         return R.ok("登录成功", vo);
     }
 
