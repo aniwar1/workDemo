@@ -16,8 +16,16 @@ export function startTrain(id) {
   return request.post(`/train/${id}/start`)
 }
 
+export function stopTrain(id) {
+  return request.post(`/train/${id}/stop`)
+}
+
 export function getMetrics(id) {
   return request.get(`/train/${id}/metrics`)
+}
+
+export function getTrainLogs(id) {
+  return request.get(`/train/${id}/logs`)
 }
 
 export function deleteTrain(id) {

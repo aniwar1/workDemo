@@ -20,7 +20,11 @@
       <el-table :data="tableData" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="语料名称" />
-        <el-table-column prop="fileType" label="文件类型" />
+        <el-table-column prop="fileType" label="文件类型">
+          <template #default="{ row }">
+            <el-tag size="small">{{ (row.fileType || '').toUpperCase() }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="fileSize" label="文件大小">
           <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
         </el-table-column>
@@ -54,21 +58,29 @@
         <el-form-item label="语料名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入语料名称" />
         </el-form-item>
-        <el-form-item label="文件路径" prop="filePath">
-          <el-input v-model="form.filePath" placeholder="请输入文件路径" />
+
+        <el-form-item label="文件上传" v-if="!form.id">
+          <el-upload
+            ref="uploadRef"
+            :auto-upload="false"
+            :limit="1"
+            accept=".txt,.json,.csv,.xml"
+            :on-change="onFileChange"
+          >
+            <el-button type="primary">选择文件</el-button>
+            <template #tip>
+              <div class="upload-tip">支持 txt, json, csv, xml 格式</div>
+            </template>
+          </el-upload>
         </el-form-item>
-        <el-form-item label="文件类型" prop="fileType">
-          <el-select v-model="form.fileType" placeholder="请选择文件类型" style="width: 100%">
-            <el-option label="TXT" value="txt" />
-            <el-option label="JSON" value="json" />
-            <el-option label="CSV" value="csv" />
-            <el-option label="XML" value="xml" />
-          </el-select>
+
+        <el-form-item label="关联图谱" prop="graphId">
+          <el-input-number v-model="form.graphId" :min="1" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="uploading">上传</el-button>
       </template>
     </el-dialog>
   </div>
@@ -76,7 +88,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { getCorpusList, addCorpus, updateCorpus, deleteCorpus } from '@/api/corpus'
+import { getCorpusList, uploadCorpusFile, updateCorpus, deleteCorpus } from '@/api/corpus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
@@ -85,9 +97,12 @@ const total = ref(0)
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formRef = ref(null)
+const uploadRef = ref(null)
+const uploading = ref(false)
+const selectedFile = ref(null)
 
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '' })
-const form = reactive({ id: null, name: '', filePath: '', fileType: '', graphId: null })
+const form = reactive({ id: null, name: '', graphId: null })
 
 const rules = { name: [{ required: true, message: '请输入语料名称', trigger: 'blur' }] }
 
@@ -102,37 +117,55 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getCorpusList(query)
-    tableData.value = res.data.list
-    total.value = res.data.total
+    tableData.value = res.data?.list || []
+    total.value = res.data?.total || 0
   } finally {
     loading.value = false
   }
 }
 
 const handleAdd = () => {
-  Object.assign(form, { id: null, name: '', filePath: '', fileType: '', graphId: null })
+  Object.assign(form, { id: null, name: '', graphId: null })
+  selectedFile.value = null
   dialogTitle.value = '上传语料'
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
-  Object.assign(form, { ...row })
+  Object.assign(form, { id: row.id, name: row.name, graphId: row.graphId })
   dialogTitle.value = '编辑语料'
   dialogVisible.value = true
 }
 
+const onFileChange = (file) => {
+  selectedFile.value = file.raw
+}
+
 const handleSubmit = async () => {
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
-  if (form.id) {
-    await updateCorpus(form.id, form)
-    ElMessage.success('修改成功')
-  } else {
-    await addCorpus(form)
-    ElMessage.success('上传成功')
+  if (!form.id && !selectedFile.value) {
+    ElMessage.warning('请选择文件')
+    return
   }
-  dialogVisible.value = false
-  loadData()
+  uploading.value = true
+  try {
+    if (form.id) {
+      await updateCorpus(form.id, { name: form.name, graphId: form.graphId })
+      ElMessage.success('修改成功')
+    } else {
+      const fd = new FormData()
+      fd.append('file', selectedFile.value)
+      fd.append('name', form.name)
+      fd.append('graphId', form.graphId || '')
+      await uploadCorpusFile(fd)
+      ElMessage.success('上传成功')
+    }
+    dialogVisible.value = false
+    loadData()
+  } catch (e) {
+    ElMessage.error('操作失败')
+  } finally {
+    uploading.value = false
+  }
 }
 
 const handleDelete = async (row) => {
@@ -150,4 +183,5 @@ onMounted(() => loadData())
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
 .search-bar .el-input { width: 300px; }
+.upload-tip { font-size: 12px; color: #999; margin-top: 4px; }
 </style>

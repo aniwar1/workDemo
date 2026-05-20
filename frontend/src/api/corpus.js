@@ -19,3 +19,9 @@ export function updateCorpus(id, data) {
 export function deleteCorpus(id) {
   return request.delete(`/corpus/${id}`)
 }
+
+export function uploadCorpusFile(formData) {
+  return request.post('/corpus/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}

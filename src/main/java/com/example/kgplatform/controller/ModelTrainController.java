@@ -46,10 +46,20 @@ public class ModelTrainController extends ServiceImpl<KgTrainTaskMapper, KgTrain
     @PostMapping("/{id}/start")
     public R<Void> startTrain(@PathVariable Long id) {
         KgTrainTask task = kgTrainTaskService.getById(id);
-        if (task != null) {
-            task.setStatus("running");
-            kgTrainTaskService.updateById(task);
+        if (task == null) {
+            return R.fail("任务不存在");
         }
+        if ("running".equals(task.getStatus())) {
+            return R.fail("任务已在运行中");
+        }
+        kgTrainTaskService.startTrainAsync(id);
+        return R.ok();
+    }
+
+    @Operation(summary = "停止训练")
+    @PostMapping("/{id}/stop")
+    public R<Void> stopTrain(@PathVariable Long id) {
+        kgTrainTaskService.stopTrain(id);
         return R.ok();
     }
 
@@ -57,6 +67,12 @@ public class ModelTrainController extends ServiceImpl<KgTrainTaskMapper, KgTrain
     @GetMapping("/{id}/metrics")
     public R<KgTrainTask> getMetrics(@PathVariable Long id) {
         return R.ok(kgTrainTaskService.getById(id));
+    }
+
+    @Operation(summary = "获取训练日志")
+    @GetMapping("/{id}/logs")
+    public R<String> getLogs(@PathVariable Long id) {
+        return R.ok(kgTrainTaskService.getTrainLogs(id));
     }
 
     @Operation(summary = "删除训练任务")

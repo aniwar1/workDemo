@@ -14,10 +14,14 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="任务名称" />
         <el-table-column prop="corpusId" label="语料ID" />
-        <el-table-column prop="annotationType" label="标注类型" />
+        <el-table-column prop="annotationType" label="标注类型">
+          <template #default="{ row }">
+            <el-tag>{{ annotationTypeText(row.annotationType) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="assigneeId" label="分配给">
           <template #default="{ row }">
-            {{ row.assigneeId ? '用户#' + row.assigneeId : '未分配' }}
+            {{ row.assigneeId ? getUserName(row.assigneeId) : '未分配' }}
           </template>
         </el-table-column>
         <el-table-column prop="totalCount" label="总数量" />
@@ -31,9 +35,10 @@
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="200">
           <template #default="{ row }">
-            <el-button link type="warning" @click="handleAssign(row)">分配</el-button>
+            <el-button link type="primary" @click="handleAssign(row)">分配</el-button>
+            <el-button link type="success" @click="handleGenerate(row)">生成数据</el-button>
             <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -78,7 +83,7 @@
         </el-form-item>
         <el-form-item label="分配给">
           <el-select v-model="assignForm.assigneeId" placeholder="请选择用户" style="width: 100%">
-            <el-option label="管理员" :value="1" />
+            <el-option v-for="u in userList" :key="u.id" :label="u.username" :value="u.id" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -92,8 +97,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { getTaskList, createTask, assignTask, deleteTask } from '@/api/annotation'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getTaskList, createTask, assignTask, deleteTask, generateRecords } from '@/api/annotation'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -102,6 +107,7 @@ const dialogVisible = ref(false)
 const assignDialogVisible = ref(false)
 const dialogTitle = ref('')
 const formRef = ref(null)
+const userList = ref([])
 
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '' })
 const form = reactive({ name: '', corpusId: null, annotationType: 'entity' })
@@ -110,13 +116,31 @@ const assignForm = reactive({ id: null, taskName: '', assigneeId: null })
 const rules = { name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }] }
 const statusType = (s) => ({ pending: 'info', assigned: 'warning', in_progress: 'primary', completed: 'success' }[s] || 'info')
 const statusText = (s) => ({ pending: '待分配', assigned: '已分配', in_progress: '进行中', completed: '已完成' }[s] || s)
+const annotationTypeText = (t) => ({ entity: '实体标注', relation: '关系标注', joint: '联合标注' }[t] || t)
+
+const getUserName = (id) => {
+  const u = userList.value.find(x => x.id === id)
+  return u ? u.username : '用户 #' + id
+}
+
+const loadUsers = async () => {
+  try {
+    const res = await fetch('/api/system/user/list?pageNum=1&pageSize=100', {
+      headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
+    })
+    const data = await res.json()
+    userList.value = data.data?.list || []
+  } catch {
+    userList.value = []
+  }
+}
 
 const loadData = async () => {
   loading.value = true
   try {
     const res = await getTaskList(query)
-    tableData.value = res.data.list
-    total.value = res.data.total
+    tableData.value = res.data?.list || []
+    total.value = res.data?.total || 0
   } finally {
     loading.value = false
   }
@@ -143,9 +167,20 @@ const handleAssign = (row) => {
 }
 
 const handleAssignSubmit = async () => {
+  if (!assignForm.assigneeId) {
+    ElMessage.warning('请选择用户')
+    return
+  }
   await assignTask(assignForm.id, assignForm.assigneeId)
   ElMessage.success('分配成功')
   assignDialogVisible.value = false
+  loadData()
+}
+
+const handleGenerate = async (row) => {
+  await ElMessageBox.confirm('确定生成10条标注数据吗？', '提示')
+  await generateRecords(row.id)
+  ElMessage.success('数据已生成')
   loadData()
 }
 
@@ -156,7 +191,7 @@ const handleDelete = async (row) => {
   loadData()
 }
 
-onMounted(() => loadData())
+onMounted(() => { loadData(); loadUsers() })
 </script>
 
 <style scoped>

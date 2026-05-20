@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @Tag(name = "数据转化管理")
 @RestController
 @RequestMapping("/api/data/transform")
@@ -44,13 +46,13 @@ public class DataTransformController extends ServiceImpl<KgTransformTaskMapper, 
 
     @Operation(summary = "执行数据转换")
     @PostMapping("/{id}/execute")
-    public R<Void> execute(@PathVariable Long id) {
-        KgTransformTask task = kgTransformTaskService.getById(id);
-        if (task != null) {
-            task.setStatus("running");
-            kgTransformTaskService.updateById(task);
+    public R<Map<String, Object>> execute(@PathVariable Long id) {
+        try {
+            Map<String, Object> result = kgTransformTaskService.executeTransform(id);
+            return R.ok(result);
+        } catch (Exception e) {
+            return R.fail(e.getMessage());
         }
-        return R.ok();
     }
 
     @Operation(summary = "删除转换任务")

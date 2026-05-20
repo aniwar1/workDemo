@@ -16,10 +16,18 @@ export function startExtract(id) {
   return request.post(`/extract/${id}/start`)
 }
 
+export function stopExtract(id) {
+  return request.post(`/extract/${id}/stop`)
+}
+
 export function getExtractResult(id) {
   return request.get(`/extract/${id}/result`)
 }
 
 export function deleteExtract(id) {
   return request.delete(`/extract/${id}`)
+}
+
+export function getExtractById(id) {
+  return request.get(`/extract/${id}`)
 }
