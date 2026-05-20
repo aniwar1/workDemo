@@ -68,4 +68,72 @@ CALL add_column_if_not_exists('kg_transform_task', 'source_type', "VARCHAR(32) C
 -- Type: LONGTEXT
 CALL add_column_if_not_exists('kg_corpus', 'content', "LONGTEXT COMMENT 'Corpus text content for LLM extraction'")//
 
+-- ---- kg_node_instance: update_time ----
+-- Required by: KgNodeInstance.updateTime (consistency with other entities)
+-- Type: DATETIME
+CALL add_column_if_not_exists('kg_node_instance', 'update_time', "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update time'")//
+
+-- ---- kg_edge_instance: update_time ----
+-- Required by: KgEdgeInstance.updateTime (consistency with other entities)
+-- Type: DATETIME
+CALL add_column_if_not_exists('kg_edge_instance', 'update_time', "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update time'")//
+
+-- ---- kg_node_instance: source_task_id ----
+-- Required by: KgNodeInstance.sourceTaskId — 关联来源抽取任务
+-- Type: BIGINT
+CALL add_column_if_not_exists('kg_node_instance', 'source_task_id', "BIGINT COMMENT 'Source extract task ID'")//
+
+-- ---- kg_node_instance: neo4j_id ----
+-- Required by: KgNodeInstance.neo4jId — Neo4j 原生节点 ID，用于双存储关联
+-- Type: BIGINT
+CALL add_column_if_not_exists('kg_node_instance', 'neo4j_id', "BIGINT COMMENT 'Neo4j native node ID for dual-storage linking'")//
+
+-- ---- kg_edge_instance: source_task_id ----
+-- Required by: KgEdgeInstance.sourceTaskId — 关联来源抽取任务
+-- Type: BIGINT
+CALL add_column_if_not_exists('kg_edge_instance', 'source_task_id', "BIGINT COMMENT 'Source extract task ID'")//
+
+-- ---- kg_node_instance: deleted ----
+-- Required by: KgNodeInstance.deleted (logical soft-delete)
+-- Type: INT
+CALL add_column_if_not_exists('kg_node_instance', 'deleted', "INT DEFAULT 0 COMMENT 'Soft delete: 0=not deleted, 1=deleted'")//
+
+-- ---- kg_edge_instance: deleted ----
+-- Required by: KgEdgeInstance.deleted (logical soft-delete)
+-- Type: INT
+CALL add_column_if_not_exists('kg_edge_instance', 'deleted', "INT DEFAULT 0 COMMENT 'Soft delete: 0=not deleted, 1=deleted'")//
+
+-- ---- kg_annotation_auth: annotation authorization records ----
+-- Stores annotation authorization records for annotators
+CREATE TABLE IF NOT EXISTS kg_annotation_auth (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(128) COMMENT 'Authorization name',
+    annotator_id BIGINT COMMENT 'Annotator user ID',
+    annotator_username VARCHAR(64) COMMENT 'Annotator username',
+    corpus_id BIGINT COMMENT 'Associated corpus ID',
+    corpus_name VARCHAR(128) COMMENT 'Corpus name',
+    annotation_type VARCHAR(32) DEFAULT 'entity' COMMENT 'Annotation type: entity, relation',
+    scope VARCHAR(32) COMMENT 'Authorization scope',
+    status VARCHAR(32) DEFAULT 'active' COMMENT 'Status: active, revoked',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
+    deleted INT DEFAULT 0 COMMENT 'Soft delete: 0=not deleted, 1=deleted'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4//
+
+-- ---- kg_multimodal_data: multimodal data management ----
+-- Stores multimodal data (image, video, audio, document) linked to graph nodes
+CREATE TABLE IF NOT EXISTS kg_multimodal_data (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    graph_id BIGINT COMMENT 'Associated graph ID',
+    data_type VARCHAR(32) COMMENT 'Data type: image, video, audio, document, text, 3d_model',
+    source_url VARCHAR(512) COMMENT 'Source URL or MinIO path',
+    local_path VARCHAR(512) COMMENT 'Local storage path',
+    description VARCHAR(512) COMMENT 'Data description',
+    status VARCHAR(32) DEFAULT 'uploaded' COMMENT 'Status: uploaded, processing, linked, failed',
+    metadata JSON COMMENT 'Additional metadata (nodeId, etc.)',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
+    deleted INT DEFAULT 0 COMMENT 'Soft delete: 0=not deleted, 1=deleted'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4//
+
 DELIMITER ;

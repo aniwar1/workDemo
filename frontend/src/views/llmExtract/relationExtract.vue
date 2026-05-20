@@ -1,11 +1,9 @@
 <template>
   <div class="extract-page">
-    <!-- Left Panel: Input -->
     <div class="panel panel-input">
       <div class="panel-header">
         <span>输入文本</span>
       </div>
-
       <el-input
         v-model="form.text"
         type="textarea"
@@ -18,18 +16,9 @@
       </div>
     </div>
 
-    <!-- Right Panel: Config + Output -->
     <div class="panel panel-result">
-      <!-- Controls -->
       <div class="controls-bar">
         <el-form :inline="true" :model="form" label-width="80">
-          <el-form-item label="抽取类型">
-            <el-select v-model="form.extractType" style="width: 120px">
-              <el-option label="全部" value="all" />
-              <el-option label="仅实体" value="entity" />
-              <el-option label="仅关系" value="relation" />
-            </el-select>
-          </el-form-item>
           <el-form-item label="语言">
             <el-select v-model="form.language" style="width: 100px">
               <el-option label="中文" value="zh" />
@@ -60,37 +49,16 @@
         </el-button>
       </div>
 
-      <!-- Result Tabs -->
       <el-tabs v-model="activeTab" class="result-tabs">
         <el-tab-pane label="抽取结果" name="result">
           <div class="results" v-if="result || errorMsg">
             <el-alert v-if="errorMsg" :title="errorMsg" type="error" show-icon :closable="true" @close="errorMsg = ''" />
-
             <div v-if="result" class="result-stats">
-              <el-tag type="success">实体 {{ result.entities?.length || 0 }}</el-tag>
               <el-tag type="warning">关系 {{ result.relations?.length || 0 }}</el-tag>
             </div>
-
-            <div v-if="result?.entities?.length" class="result-section">
-              <div class="section-title">实体列表</div>
-              <el-table :data="result.entities" stripe size="small" max-height="240">
-                <el-table-column prop="name" label="名称" min-width="120" />
-                <el-table-column prop="type" label="类型" width="140">
-                  <template #default="{ row }">
-                    <el-tag size="small" type="info">{{ row.type }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="属性" min-width="160">
-                  <template #default="{ row }">
-                    <span class="attr-text">{{ formatAttrs(row.attributes) }}</span>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-
             <div v-if="result?.relations?.length" class="result-section">
               <div class="section-title">关系列表</div>
-              <el-table :data="result.relations" stripe size="small" max-height="200">
+              <el-table :data="result.relations" stripe size="small" max-height="300">
                 <el-table-column prop="source" label="源实体" width="140" />
                 <el-table-column prop="type" label="关系" width="120">
                   <template #default="{ row }">
@@ -105,10 +73,8 @@
                 </el-table-column>
               </el-table>
             </div>
-
-            <el-empty v-if="result && !result.entities?.length && !result.relations?.length" description="未抽取出任何实体或关系" />
+            <el-empty v-if="result && !result.relations?.length" description="未抽取出任何关系" />
           </div>
-
           <div v-else class="results-empty">
             <el-empty description="抽取结果将在此展示">
               <template #image>
@@ -137,7 +103,7 @@ const graphList = ref([])
 
 const form = reactive({
   text: '',
-  extractType: 'all',
+  extractType: 'relation',
   language: 'zh',
   model: '',
   graphId: null,
@@ -157,7 +123,7 @@ const handleExtract = async () => {
     if (form.graphId) {
       res = await extractDirectSave({
         text: form.text,
-        extractType: form.extractType,
+        extractType: 'relation',
         language: form.language,
         model: form.model || null,
         graphId: form.graphId,
@@ -165,7 +131,7 @@ const handleExtract = async () => {
     } else {
       res = await extractDirect({
         text: form.text,
-        extractType: form.extractType,
+        extractType: 'relation',
         language: form.language,
         model: form.model || null,
       })

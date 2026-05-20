@@ -1,15 +1,14 @@
 package com.example.kgplatform.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.kgplatform.common.PageQuery;
+import com.example.kgplatform.common.PageQueryUtil;
 import com.example.kgplatform.common.PageResult;
 import com.example.kgplatform.entity.SysUser;
 import com.example.kgplatform.mapper.SysUserMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 @Service
 public class SysUserService extends ServiceImpl<SysUserMapper, SysUser> {
@@ -29,14 +28,13 @@ public class SysUserService extends ServiceImpl<SysUserMapper, SysUser> {
     }
 
     public PageResult<SysUser> pageQuery(PageQuery query) {
-        Page<SysUser> page = new Page<>(query.getPageNum(), query.getPageSize());
-        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(query.getKeyword())) {
-            wrapper.like(SysUser::getUsername, query.getKeyword())
-                   .or().like(SysUser::getNickname, query.getKeyword());
-        }
-        Page<SysUser> result = page(page, wrapper);
-        return PageResult.of(result.getTotal(), result.getRecords());
+        return PageQueryUtil.pagedQuery(this, query, wrapper -> {
+            if (query.getKeyword() != null && !query.getKeyword().isBlank()) {
+                wrapper.like(SysUser::getUsername, query.getKeyword())
+                       .or()
+                       .like(SysUser::getNickname, query.getKeyword());
+            }
+        });
     }
 
     public boolean register(SysUser user) {

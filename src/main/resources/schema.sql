@@ -196,10 +196,14 @@ CREATE TABLE kg_node_instance (
     node_name VARCHAR(128) NOT NULL COMMENT 'Node name',
     node_type VARCHAR(64) COMMENT 'Node type',
     properties JSON COMMENT 'Node properties',
+    source_task_id BIGINT COMMENT 'Source extract task ID',
+    neo4j_id BIGINT COMMENT 'Neo4j native node ID for dual-storage linking',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted INT DEFAULT 0,
     INDEX idx_graph_id (graph_id),
-    INDEX idx_node_type (node_type)
+    INDEX idx_node_type (node_type),
+    INDEX idx_source_task_id (source_task_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Graph Node Instance';
 
 -- ----------------------------
@@ -213,10 +217,13 @@ CREATE TABLE kg_edge_instance (
     target_node_id BIGINT NOT NULL COMMENT 'Target node ID',
     relation_type VARCHAR(64) COMMENT 'Relation type',
     properties JSON COMMENT 'Edge properties',
+    source_task_id BIGINT COMMENT 'Source extract task ID',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted INT DEFAULT 0,
     INDEX idx_graph_id (graph_id),
-    INDEX idx_relation_type (relation_type)
+    INDEX idx_relation_type (relation_type),
+    INDEX idx_source_task_id (source_task_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Graph Edge Instance';
 
 -- ----------------------------

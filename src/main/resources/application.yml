@@ -33,7 +33,7 @@ minio:
 neo4j:
   uri: bolt://localhost:7687
   username: neo4j
-  password: neo4j123456
+  password: zhan20021204
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

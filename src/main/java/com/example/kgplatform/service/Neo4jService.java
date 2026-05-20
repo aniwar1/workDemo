@@ -218,18 +218,26 @@ public class Neo4jService {
     }
 
     @Transactional
-    public void batchCreateNodesAndRelations(List<Map<String, Object>> nodes, List<Map<String, Object>> relations) {
+    public Map<String, Long> batchCreateNodesAndRelations(List<Map<String, Object>> nodes, List<Map<String, Object>> relations) {
+        Map<String, Long> nameToNeo4jId = new HashMap<>();
         try (Session session = driver.session()) {
             for (Map<String, Object> node : nodes) {
+                String name = (String) node.get("name");
+                Long graphId = ((Number) node.get("graphId")).longValue();
+                String entityType = (String) node.getOrDefault("entityType", "实体");
                 String cypher = """
                     MERGE (e:Entity {name: $name, graphId: $graphId})
                     SET e.entityType = $entityType
+                    RETURN id(e) as neo4jId
                     """;
-                session.run(cypher, Map.of(
-                        "name", (String) node.get("name"),
-                        "graphId", ((Number) node.get("graphId")).longValue(),
-                        "entityType", (String) node.getOrDefault("entityType", "实体")
+                var result = session.run(cypher, Map.of(
+                        "name", name,
+                        "graphId", graphId,
+                        "entityType", entityType
                 ));
+                if (result.hasNext()) {
+                    nameToNeo4jId.put(name, result.next().get("neo4jId").asLong());
+                }
             }
             for (Map<String, Object> rel : relations) {
                 String sourceName = (String) rel.get("sourceName");
@@ -249,5 +257,6 @@ public class Neo4jService {
                 ));
             }
         }
+        return nameToNeo4jId;
     }
 }

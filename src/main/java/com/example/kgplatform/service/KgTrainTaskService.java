@@ -1,15 +1,14 @@
 package com.example.kgplatform.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.kgplatform.common.PageQuery;
+import com.example.kgplatform.common.PageQueryUtil;
 import com.example.kgplatform.common.PageResult;
 import com.example.kgplatform.entity.KgTrainTask;
 import com.example.kgplatform.mapper.KgTrainTaskMapper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.util.Map;
 import java.util.Random;
@@ -22,14 +21,12 @@ public class KgTrainTaskService extends ServiceImpl<KgTrainTaskMapper, KgTrainTa
     private static final Random random = new Random();
 
     public PageResult<KgTrainTask> pageQuery(PageQuery query) {
-        Page<KgTrainTask> page = new Page<>(query.getPageNum(), query.getPageSize());
-        LambdaQueryWrapper<KgTrainTask> wrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(query.getKeyword())) {
-            wrapper.like(KgTrainTask::getName, query.getKeyword());
-        }
-        wrapper.orderByDesc(KgTrainTask::getCreateTime);
-        Page<KgTrainTask> result = page(page, wrapper);
-        return PageResult.of(result.getTotal(), result.getRecords());
+        return PageQueryUtil.pagedQuery(this, query, wrapper -> {
+            if (query.getKeyword() != null && !query.getKeyword().isBlank()) {
+                wrapper.like(KgTrainTask::getName, query.getKeyword());
+            }
+            wrapper.orderByDesc(KgTrainTask::getCreateTime);
+        });
     }
 
     @Async
