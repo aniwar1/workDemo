@@ -1,6 +1,7 @@
 package com.example.kgplatform.service;
 
 import com.example.kgplatform.config.DashScopeProperties;
+import com.example.kgplatform.config.OllamaProperties;
 import com.example.kgplatform.dto.LlmExtractResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,12 +22,16 @@ public class DashScopeService {
     private static final Logger log = LoggerFactory.getLogger(DashScopeService.class);
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-    private final DashScopeProperties properties;
+    private final DashScopeProperties dashScopeProperties;
+    private final OllamaProperties ollamaProperties;
     private final ObjectMapper objectMapper;
     private final OkHttpClient httpClient;
 
-    public DashScopeService(DashScopeProperties properties, ObjectMapper objectMapper) {
-        this.properties = properties;
+    public DashScopeService(DashScopeProperties dashScopeProperties,
+                            OllamaProperties ollamaProperties,
+                            ObjectMapper objectMapper) {
+        this.dashScopeProperties = dashScopeProperties;
+        this.ollamaProperties = ollamaProperties;
         this.objectMapper = objectMapper;
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(60, TimeUnit.SECONDS)
@@ -102,11 +107,71 @@ public class DashScopeService {
     }
 
     private String callLlm(String prompt, String modelOverride) {
-        String url = properties.getBaseUrl() + "/chat/completions";
+        if (ollamaProperties.isEnabled()) {
+            return callOllama(prompt, modelOverride);
+        } else {
+            return callDashScope(prompt, modelOverride);
+        }
+    }
+
+    private String callOllama(String prompt, String modelOverride) {
+        String model = (modelOverride != null && !modelOverride.isBlank()) ? modelOverride : ollamaProperties.getModel();
+
+        String requestBody;
+        try {
+            requestBody = objectMapper.writeValueAsString(Map.of(
+                    "model", model,
+                    "prompt", prompt,
+                    "stream", false,
+                    "options", Map.of("temperature", 0.1, "num_predict", 4096)
+            ));
+        } catch (Exception e) {
+            throw new RuntimeException("构建 Ollama 请求体失败: " + e.getMessage(), e);
+        }
+
+        String url = ollamaProperties.getBaseUrl() + "/api/generate";
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .post(RequestBody.create(requestBody, JSON))
+                .build();
+
+        int retries = 0;
+        while (retries <= dashScopeProperties.getMaxRetries()) {
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    String errorBody = response.body() != null ? response.body().string() : "无响应体";
+                    log.warn("Ollama API 请求失败（第{}次重试），HTTP {}: {}", retries + 1, response.code(), errorBody);
+                    retries++;
+                    continue;
+                }
+
+                String body = response.body() != null ? response.body().string() : "";
+                return extractOllamaContent(body);
+
+            } catch (IOException e) {
+                log.warn("Ollama API 调用 IO 异常（第{}次重试）: {}", retries + 1, e.getMessage());
+                retries++;
+            }
+        }
+
+        throw new RuntimeException("Ollama API 调用失败，已达到最大重试次数（" + dashScopeProperties.getMaxRetries() + "）");
+    }
+
+    private String extractOllamaContent(String responseBody) throws IOException {
+        JsonNode root = objectMapper.readTree(responseBody);
+        if (root.has("error")) {
+            throw new RuntimeException("Ollama API 返回错误: " + root.get("error").asText());
+        }
+        return root.path("response").asText("");
+    }
+
+    private String callDashScope(String prompt, String modelOverride) {
+        String url = dashScopeProperties.getBaseUrl() + "/chat/completions";
 
         String systemMsg = "You are a knowledge graph extraction assistant that strictly follows JSON format. Only output JSON, no other text.";
 
-        String model = (modelOverride != null && !modelOverride.isBlank()) ? modelOverride : properties.getModel();
+        String model = (modelOverride != null && !modelOverride.isBlank()) ? modelOverride : dashScopeProperties.getModel();
 
         String requestBody;
         try {
@@ -125,13 +190,13 @@ public class DashScopeService {
 
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + properties.getApiKey())
+                .addHeader("Authorization", "Bearer " + dashScopeProperties.getApiKey())
                 .addHeader("Content-Type", "application/json")
                 .post(RequestBody.create(requestBody, JSON))
                 .build();
 
         int retries = 0;
-        while (retries <= properties.getMaxRetries()) {
+        while (retries <= dashScopeProperties.getMaxRetries()) {
             try (Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     String errorBody = response.body() != null ? response.body().string() : "无响应体";
@@ -149,7 +214,7 @@ public class DashScopeService {
             }
         }
 
-        throw new RuntimeException("LLM API 调用失败，已达到最大重试次数（" + properties.getMaxRetries() + "）");
+        throw new RuntimeException("LLM API 调用失败，已达到最大重试次数（" + dashScopeProperties.getMaxRetries() + "）");
     }
 
     private String extractContent(String responseBody) throws IOException {

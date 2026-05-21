@@ -1,18 +1,11 @@
 <template>
   <div class="kos-index">
-    <router-view />
+    <KosExtractIndex />
   </div>
 </template>
 
 <script setup>
-import { onBeforeMount } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-
-onBeforeMount(() => {
-  router.replace('/data/dl')
-})
+import KosExtractIndex from './kosExtractIndex.vue'
 </script>
 
 <style scoped>

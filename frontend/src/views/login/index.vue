@@ -5,7 +5,7 @@
       <div class="login-header">
         <el-icon :size="40" color="#00f0ff"><Connection /></el-icon>
         <h2>知识图谱管理平台</h2>
-        <p>Knowledge Graph Management Platform</p>
+        <p>Collaborative Knowledge Graph Construction Management System</p>
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" class="login-form">
         <el-form-item prop="username">

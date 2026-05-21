@@ -4,7 +4,7 @@
     <div class="sidebar" :class="{ collapsed: isCollapsed }">
       <div class="logo">
         <el-icon :size="28"><Connection /></el-icon>
-        <span v-if="!isCollapsed">KG Platform</span>
+        <span v-if="!isCollapsed">知识图谱协同构建管理系统</span>
       </div>
       <el-menu
         :default-active="activeMenu"

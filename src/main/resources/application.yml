@@ -65,6 +65,12 @@ logging:
   level:
     com.example.kgplatform: debug
 
+# Ollama 本地 LLM 配置（免费）
+ollama:
+  enabled: ${OLLAMA_ENABLED:true}
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:deepseek-r1}
+
 # DashScope 通义千问 LLM 配置
 dashscope:
   api-key: ${DASHSCOPE_API_KEY:sk-8ea0cac2afb94261bf2a70c3bf786a0b}
