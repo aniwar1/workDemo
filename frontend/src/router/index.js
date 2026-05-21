@@ -43,53 +43,42 @@ const routes = [
     redirect: '/data/transform',
     children: [
       { path: 'transform', name: 'StructTransform', component: () => import('@/views/dataTransform/structTransform.vue'), meta: { title: '（半）结构化数据转化' } },
-
+      { path: 'kos', name: 'KosKnowledgeExtract', component: () => import('@/views/kosExtract/index.vue'), meta: { title: '基于KOS知识抽取' } },
       {
-        path: 'kos',
-        name: 'KosKnowledgeExtract',
-        component: () => import('@/views/kosExtract/index.vue'),
-        meta: { title: '基于KOS知识抽取' },
-        redirect: '/data/kos/dl',
+        path: 'dl',
+        name: 'DlExtractMain',
+        component: () => import('@/views/kosExtract/dlIndex.vue'),
+        meta: { title: '深度学习知识抽取' },
+        redirect: '/data/dl/preprocess',
         children: [
           {
-            path: 'dl',
-            name: 'DlExtractMain',
-            component: () => import('@/views/kosExtract/dlIndex.vue'),
-            meta: { title: '深度学习知识抽取' },
-            redirect: '/data/kos/dl/preprocess',
+            path: 'preprocess',
+            name: 'PreprocessMain',
+            component: () => import('@/views/kosExtract/preprocessIndex.vue'),
+            meta: { title: '数据标注与预处理' },
+            redirect: '/data/dl/preprocess/corpus',
             children: [
-              {
-                path: 'preprocess',
-                name: 'PreprocessMain',
-                component: () => import('@/views/kosExtract/preprocessIndex.vue'),
-                meta: { title: '数据标注与预处理' },
-                redirect: '/data/kos/dl/preprocess/corpus',
-                children: [
-                  { path: 'corpus', name: 'CorpusManage', component: () => import('@/views/dlExtract/corpusManage.vue'), meta: { title: '语料管理' } },
-                  { path: 'auth', name: 'AnnotationAuth', component: () => import('@/views/dlExtract/annotationAuth.vue'), meta: { title: '标注授权' } },
-                  { path: 'annotate', name: 'DataAnnotate', component: () => import('@/views/dlExtract/dataAnnotate.vue'), meta: { title: '数据标注' } },
-                  { path: 'manage', name: 'AnnotationManage', component: () => import('@/views/dlExtract/annotationManage.vue'), meta: { title: '标注管理' } },
-                ]
-              },
-              {
-                path: 'training',
-                name: 'TrainingMain',
-                component: () => import('@/views/kosExtract/trainingIndex.vue'),
-                meta: { title: '模型训练与评估' },
-                redirect: '/data/kos/dl/training/train',
-                children: [
-                  { path: 'train', name: 'ModelTrainManage', component: () => import('@/views/dlExtract/modelTrainManage.vue'), meta: { title: '模型训练管理' } },
-                  { path: 'effect', name: 'ModelEffect', component: () => import('@/views/dlExtract/modelEffect.vue'), meta: { title: '训练效果' } },
-                ]
-              },
-              { path: 'extract', name: 'KnowledgeExtract', component: () => import('@/views/dlExtract/extractIndex.vue'), meta: { title: '知识抽取' } },
+              { path: 'corpus', name: 'CorpusManage', component: () => import('@/views/dlExtract/corpusManage.vue'), meta: { title: '语料管理' } },
+              { path: 'auth', name: 'AnnotationAuth', component: () => import('@/views/dlExtract/annotationAuth.vue'), meta: { title: '标注授权' } },
+              { path: 'annotate', name: 'DataAnnotate', component: () => import('@/views/dlExtract/dataAnnotate.vue'), meta: { title: '数据标注' } },
+              { path: 'manage', name: 'AnnotationManage', component: () => import('@/views/dlExtract/annotationManage.vue'), meta: { title: '标注管理' } },
             ]
           },
+          {
+            path: 'training',
+            name: 'TrainingMain',
+            component: () => import('@/views/kosExtract/trainingIndex.vue'),
+            meta: { title: '模型训练与评估' },
+            redirect: '/data/dl/training/train',
+            children: [
+              { path: 'train', name: 'ModelTrainManage', component: () => import('@/views/dlExtract/modelTrainManage.vue'), meta: { title: '模型训练管理' } },
+              { path: 'effect', name: 'ModelEffect', component: () => import('@/views/dlExtract/modelEffect.vue'), meta: { title: '训练效果' } },
+            ]
+          },
+          { path: 'extract', name: 'KnowledgeExtract', component: () => import('@/views/dlExtract/extractIndex.vue'), meta: { title: '知识抽取' } },
         ]
       },
-
       { path: 'llm', name: 'LlmKnowledgeExtract', component: () => import('@/views/llmExtract/index.vue'), meta: { title: '基于LLM知识抽取' } },
-
       { path: 'multimodal', name: 'MultimodalUpdate', component: () => import('@/views/multimodal/multimodalUpdate.vue'), meta: { title: '多模态数据更新' } },
     ]
   },

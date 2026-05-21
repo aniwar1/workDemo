@@ -43,26 +43,24 @@
             <el-icon><DataAnalysis /></el-icon>
             <span>知识抽取与转化</span>
           </template>
-          <el-menu-item index="/data/transform">（半）结构化数据转化</el-menu-item>
 
-          <el-sub-menu index="/data/kos">
-            <template #title>基于KOS知识抽取</template>
-            <el-sub-menu index="/data/kos/dl">
-              <template #title>深度学习知识抽取</template>
-              <el-sub-menu index="/data/kos/dl/preprocess">
-                <template #title>数据标注与预处理</template>
-                <el-menu-item index="/data/kos/dl/preprocess/corpus">语料管理</el-menu-item>
-                <el-menu-item index="/data/kos/dl/preprocess/auth">标注授权</el-menu-item>
-                <el-menu-item index="/data/kos/dl/preprocess/annotate">数据标注</el-menu-item>
-                <el-menu-item index="/data/kos/dl/preprocess/manage">标注管理</el-menu-item>
-              </el-sub-menu>
-              <el-sub-menu index="/data/kos/dl/training">
-                <template #title>模型训练与评估</template>
-                <el-menu-item index="/data/kos/dl/training/train">模型训练管理</el-menu-item>
-                <el-menu-item index="/data/kos/dl/training/effect">训练效果</el-menu-item>
-              </el-sub-menu>
-              <el-menu-item index="/data/kos/dl/extract">知识抽取</el-menu-item>
+          <el-menu-item index="/data/transform">（半）结构化数据转化</el-menu-item>
+          <el-menu-item index="/data/kos">基于KOS知识抽取</el-menu-item>
+          <el-sub-menu index="/data/dl">
+            <template #title>深度学习知识抽取</template>
+            <el-sub-menu index="/data/dl/preprocess">
+              <template #title>数据标注与预处理</template>
+              <el-menu-item index="/data/dl/preprocess/corpus">语料管理</el-menu-item>
+              <el-menu-item index="/data/dl/preprocess/auth">标注授权</el-menu-item>
+              <el-menu-item index="/data/dl/preprocess/annotate">数据标注</el-menu-item>
+              <el-menu-item index="/data/dl/preprocess/manage">标注管理</el-menu-item>
             </el-sub-menu>
+            <el-sub-menu index="/data/dl/training">
+              <template #title>模型训练与评估</template>
+              <el-menu-item index="/data/dl/training/train">模型训练管理</el-menu-item>
+              <el-menu-item index="/data/dl/training/effect">训练效果</el-menu-item>
+            </el-sub-menu>
+            <el-menu-item index="/data/dl/extract">知识抽取</el-menu-item>
           </el-sub-menu>
 
           <el-menu-item index="/data/llm">基于LLM知识抽取</el-menu-item>

@@ -12,7 +12,7 @@
 
       <div v-if="!selectedTaskId" class="empty-state">
         <el-empty description="请先选择一个标注任务">
-          <el-button type="primary" @click="$router.push('/dl/annotation-auth')">去分配任务</el-button>
+          <el-button type="primary" @click="$router.push('/data/dl/preprocess/auth')">去分配任务</el-button>
         </el-empty>
       </div>
 

@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 onBeforeMount(() => {
-  router.replace('/data/kos/dl/training/train')
+  router.replace('/data/dl/training/train')
 })
 </script>
 

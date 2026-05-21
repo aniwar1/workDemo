@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 onBeforeMount(() => {
-  router.replace('/data/kos/dl')
+  router.replace('/data/dl')
 })
 </script>
 

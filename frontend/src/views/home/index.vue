@@ -38,9 +38,9 @@
           </template>
           <div class="quick-actions">
             <el-button type="primary" plain @click="$router.push('/kg/graph')">新建图谱</el-button>
-            <el-button type="success" plain @click="$router.push('/dl/corpus')">上传语料</el-button>
-            <el-button type="warning" plain @click="$router.push('/dl/train')">模型训练</el-button>
-            <el-button type="info" plain @click="$router.push('/llm/extract')">LLM抽取</el-button>
+            <el-button type="success" plain @click="$router.push('/data/dl/preprocess/corpus')">上传语料</el-button>
+            <el-button type="warning" plain @click="$router.push('/data/dl/training/train')">模型训练</el-button>
+            <el-button type="info" plain @click="$router.push('/data/llm')">LLM抽取</el-button>
             <el-button type="danger" plain @click="$router.push('/explore/graph')">图谱探索</el-button>
             <el-button plain @click="$router.push('/system/user')">用户管理</el-button>
           </div>

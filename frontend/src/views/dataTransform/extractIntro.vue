@@ -6,14 +6,14 @@
       </template>
       <el-row :gutter="20">
         <el-col :span="8">
-          <div class="intro-card" @click="$router.push('/dl/extract')">
+          <div class="intro-card" @click="$router.push('/data/dl/extract')">
             <el-icon :size="40" color="#409EFF"><Cpu /></el-icon>
             <h3>深度学习知识抽取</h3>
             <p>基于预训练模型进行实体识别、关系抽取</p>
           </div>
         </el-col>
         <el-col :span="8">
-          <div class="intro-card" @click="$router.push('/llm/extract')">
+          <div class="intro-card" @click="$router.push('/data/llm')">
             <el-icon :size="40" color="#67C23A"><MagicStick /></el-icon>
             <h3>LLM知识抽取</h3>
             <p>基于大语言模型进行智能知识抽取</p>
