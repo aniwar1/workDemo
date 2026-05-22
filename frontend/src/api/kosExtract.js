@@ -11,3 +11,7 @@ export function kosExtractSave(data, graphId) {
 export function getKosGraphList(params) {
   return request.get('/data/kos/graph-list', { params })
 }
+
+export function getKosGraphData(graphId) {
+  return request.get(`/data/kos/graph-data/${graphId}`)
+}

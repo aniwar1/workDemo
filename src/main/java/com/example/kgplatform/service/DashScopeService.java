@@ -34,9 +34,9 @@ public class DashScopeService {
         this.ollamaProperties = ollamaProperties;
         this.objectMapper = objectMapper;
         this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
+                .connectTimeout(0, TimeUnit.MILLISECONDS)
+                .readTimeout(0, TimeUnit.MILLISECONDS)
+                .writeTimeout(0, TimeUnit.MILLISECONDS)
                 .build();
     }
 
@@ -51,11 +51,15 @@ public class DashScopeService {
     }
 
     public LlmExtractResult extractDirect(String text, String extractType, String language, String modelOverride) {
+        return extractDirect(text, extractType, language, modelOverride, null);
+    }
+
+    public LlmExtractResult extractDirect(String text, String extractType, String language, String modelOverride, String schema) {
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException("待抽取文本不能为空");
         }
 
-        String prompt = buildPrompt(text, null, extractType, language);
+        String prompt = buildPrompt(text, schema, extractType, language);
         String rawResponse = callLlm(prompt, modelOverride);
         return parseResponse(rawResponse);
     }
@@ -258,14 +262,34 @@ public class DashScopeService {
             int start = trimmed.indexOf("{");
             int end = trimmed.lastIndexOf("}");
             if (start >= 0 && end > start) {
-                return trimmed.substring(start, end + 1);
+                return sanitizeLLMJson(trimmed.substring(start, end + 1));
             }
         }
         int start = trimmed.indexOf("{");
         int end = trimmed.lastIndexOf("}");
         if (start >= 0 && end > start) {
-            return trimmed.substring(start, end + 1);
+            return sanitizeLLMJson(trimmed.substring(start, end + 1));
         }
         return "{}";
+    }
+
+    private String sanitizeLLMJson(String json) {
+        String s = json;
+
+        // Replace single quotes used as string delimiters with double quotes
+        s = s.replaceAll("'([^'\\n\\r,}\\]:]+)'", "\"$1\"");
+
+        // Fix unquoted numeric values that contain non-ASCII characters (e.g., "投资": 100亿 -> "投资": "100亿")
+        // Match keys: "key": <value> where value starts with digits but contains non-ASCII
+        s = s.replaceAll("(\"[^\"]+\"\\s*:\\s*)(\\d[^,}\\]:\\n\\r]+)", "$1\"$2\"");
+
+        // Fix unquoted bare strings as map values: "key": name -> "key": "name"
+        s = s.replaceAll("(\"[^\"]+\"\\s*:\\s*)([a-zA-Z_\\u4e00-\\u9fff][^,}\\]:\\n\\r]*)", "$1\"$2\"");
+
+        // Remove trailing commas before } or ]
+        s = s.replaceAll(",\\s*([}])", "$1");
+        s = s.replaceAll(",\\s*(\\])", "$1");
+
+        return s;
     }
 }

@@ -59,7 +59,7 @@
       </div>
 
       <!-- 结果区域 -->
-      <el-tabs v-model="activeTab" class="result-tabs">
+      <el-tabs v-model="activeTab" class="result-tabs" @tab-click="onTabClick">
         <el-tab-pane label="抽取结果" name="result">
           <div class="results" v-if="result || errorMsg">
             <el-alert v-if="errorMsg" :title="errorMsg" type="error" show-icon :closable="true" @close="errorMsg = ''" />
@@ -135,15 +135,19 @@
 
         <el-tab-pane label="图谱预览" name="graph">
           <div class="graph-preview-container">
-            <div v-if="!form.graphId && !result" class="graph-empty-hint">
-              <el-empty description="请先选择目标图谱，或进行抽取后在图谱中查看">
+            <div v-if="graphLoading" class="graph-loading">
+              <el-icon class="is-loading" :size="32"><Loading /></el-icon>
+              <span>加载图谱数据中...</span>
+            </div>
+            <div v-else-if="!form.graphId" class="graph-empty-hint">
+              <el-empty description="请先选择目标图谱">
                 <template #image>
                   <el-icon :size="48" color="#dcdfe6"><Connection /></el-icon>
                 </template>
               </el-empty>
             </div>
-            <div v-else-if="!hasExtractedData" class="graph-empty-hint">
-              <el-empty description="点击「抽取」后将结果保存到图谱后，可在此预览">
+            <div v-else-if="!graphData || (graphData.nodes && graphData.nodes.length === 0)" class="graph-empty-hint">
+              <el-empty description="该图谱暂无数据，请先进行知识抽取">
                 <template #image>
                   <el-icon :size="48" color="#dcdfe6"><Connection /></el-icon>
                 </template>
@@ -161,9 +165,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { kosExtract, kosExtractSave, getKosGraphList } from '@/api/kosExtract'
+import { kosExtract, kosExtractSave, getKosGraphList, getKosGraphData } from '@/api/kosExtract'
 import { ElMessage } from 'element-plus'
-import { Connection } from '@element-plus/icons-vue'
+import { Connection, Loading } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 
 const loading = ref(false)
@@ -172,6 +176,8 @@ const errorMsg = ref('')
 const activeTab = ref('result')
 const graphList = ref([])
 const hasExtractedData = ref(false)
+const graphData = ref(null)  // 后端返回的图谱数据
+const graphLoading = ref(false)
 const chartRef = ref(null)
 const graphContainerRef = ref(null)
 let chartInstance = null
@@ -237,7 +243,7 @@ const handleExtract = async () => {
         hasExtractedData.value = true
         activeTab.value = 'graph'
         await nextTick()
-        renderGraphPreview()
+        fetchAndRenderGraph()
       }
     } else {
       errorMsg.value = res.message || '抽取失败'
@@ -360,15 +366,32 @@ const buildGraphOption = (entities, relations) => {
   }
 }
 
-const renderGraphPreview = () => {
-  if (!chartRef.value || !result.value) return
+const fetchAndRenderGraph = async () => {
+  if (!form.graphId) return
+  try {
+    const res = await getKosGraphData(form.graphId)
+    if (res.code === 200) {
+      graphData.value = res.data
+      hasExtractedData.value = true
+      await nextTick()
+      renderGraphPreviewFromGraphData()
+    }
+  } catch (e) {
+    console.error('获取图谱数据失败', e)
+  } finally {
+    graphLoading.value = false
+  }
+}
+
+const renderGraphPreviewFromGraphData = () => {
+  if (!chartRef.value || !graphData.value) return
   if (chartInstance) {
     chartInstance.dispose()
     chartInstance = null
   }
 
   chartInstance = echarts.init(chartRef.value)
-  const option = buildGraphOption(result.value.entities || [], result.value.relations || [])
+  const option = buildGraphOptionFromData(graphData.value.nodes || [], graphData.value.relations || [])
   chartInstance.setOption(option, true)
 
   chartInstance.on('click', (params) => {
@@ -379,12 +402,100 @@ const renderGraphPreview = () => {
   })
 }
 
-watch(activeTab, async (newTab) => {
-  if (newTab === 'graph' && hasExtractedData.value) {
-    await nextTick()
-    renderGraphPreview()
+const buildGraphOptionFromData = (nodes, relations) => {
+  const uniqueNames = [...new Set(nodes.map(n => n.name))]
+  const displayNodes = nodes.filter((n, i) => uniqueNames.indexOf(n.name) === i)
+
+  const chartNodes = displayNodes.map((n, idx) => ({
+    id: idx,
+    name: n.name.length > 14 ? n.name.slice(0, 14) + '...' : n.name,
+    fullName: n.name,
+    nodeType: n.type || '默认',
+    itemStyle: { color: getNodeColor(n.type) },
+    symbolSize: 44
+  }))
+
+  const nameToIdx = {}
+  displayNodes.forEach((n, idx) => { nameToIdx[n.name] = idx })
+
+  const chartLinks = relations
+    .filter(r => nameToIdx[r.source] !== undefined && nameToIdx[r.target] !== undefined)
+    .map(r => ({
+      source: nameToIdx[r.source],
+      target: nameToIdx[r.target],
+      name: r.type || '关系',
+      lineStyle: { color: '#aaa', width: 1.5, curveness: 0.2 }
+    }))
+
+  const categories = [...new Set(displayNodes.map(n => n.type || '默认'))].map(t => ({ name: t }))
+
+  return {
+    backgroundColor: '#fafafa',
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => {
+        if (p.dataType === 'node') {
+          return `<b>${p.data.fullName || p.data.name}</b><br/>类型: ${p.data.nodeType}`
+        }
+        return `${p.data.name}`
+      }
+    },
+    legend: {
+      data: [...new Set(displayNodes.map(n => n.type || '默认'))],
+      top: 8, right: 12, textStyle: { fontSize: 11 }
+    },
+    series: [{
+      type: 'graph',
+      layout: 'force',
+      roam: true,
+      draggable: true,
+      label: {
+        show: true,
+        position: 'right',
+        fontSize: 11,
+        color: '#333',
+        formatter: (p) => p.data.name
+      },
+      lineStyle: { curveness: 0.2 },
+      emphasis: {
+        focus: 'adjacency',
+        lineStyle: { width: 3 }
+      },
+      categories,
+      data: chartNodes,
+      links: chartLinks,
+      force: {
+        repulsion: 120,
+        edgeLength: [80, 200],
+        layoutAnimation: true
+      }
+    }]
+  }
+}
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'graph') {
+    graphLoading.value = true
+    nextTick().then(() => {
+      if (form.graphId) {
+        fetchAndRenderGraph()
+      } else {
+        graphLoading.value = false
+      }
+    })
   }
 })
+
+const onTabClick = (tab) => {
+  if (tab.paneName === 'graph') {
+    graphLoading.value = true
+    if (form.graphId) {
+      fetchAndRenderGraph()
+    } else {
+      graphLoading.value = false
+    }
+  }
+}
 
 onMounted(() => {
   loadGraphList()
@@ -526,6 +637,17 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.graph-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #909399;
+  font-size: 14px;
 }
 
 .graph-empty-hint {

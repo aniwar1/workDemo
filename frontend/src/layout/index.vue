@@ -122,6 +122,7 @@ import { useUserStore } from '@/stores/user'
 import { logout } from '@/api/auth'
 import { ElMessageBox } from 'element-plus'
 
+import { UserFilled } from '@element-plus/icons-vue'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()

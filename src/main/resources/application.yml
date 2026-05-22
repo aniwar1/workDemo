@@ -69,7 +69,7 @@ logging:
 ollama:
   enabled: ${OLLAMA_ENABLED:true}
   base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-  model: ${OLLAMA_MODEL:deepseek-r1}
+  model: ${OLLAMA_MODEL:deepseek-r1:1.5b}
 
 # DashScope 通义千问 LLM 配置
 dashscope:
@@ -77,6 +77,6 @@ dashscope:
   model: qwen-plus
   base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
   max-retries: 3
-  connect-timeout: 30000
-  socket-timeout: 60000
+  connect-timeout: 0
+  socket-timeout: 0
 

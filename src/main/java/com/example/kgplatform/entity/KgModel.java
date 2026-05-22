@@ -1,6 +1,7 @@
 package com.example.kgplatform.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ public class KgModel {
     private Long id;
     private String name;
     private String description;
+    @JsonProperty("schema")
     @TableField("schema_col")
     private String modelSchema;
     private Integer status;

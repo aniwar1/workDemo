@@ -62,18 +62,22 @@ public class Neo4jService {
 
     public List<Map<String, Object>> getGraphData(Long graphId) {
         try (Session session = driver.session()) {
-            String cypher = """
+            String relsCypher = """
                 MATCH (s:Entity {graphId: $graphId})-[r]->(t:Entity {graphId: $graphId})
                 RETURN s, r, t
                 """;
-            return session.run(cypher, Map.of("graphId", graphId))
-                    .stream()
-                    .map(record -> Map.<String, Object>of(
-                            "source", record.get("s").asMap(),
-                            "relation", record.get("r").asMap(),
-                            "target", record.get("t").asMap()
-                    ))
-                    .toList();
+            List<Map<String, Object>> result = new ArrayList<>();
+            session.run(relsCypher, Map.of("graphId", graphId)).stream().forEach(record -> {
+                var sVal = record.get("s");
+                var rVal = record.get("r");
+                var tVal = record.get("t");
+                if (sVal == null || sVal.isNull() || rVal == null || rVal.isNull() || tVal == null || tVal.isNull()) return;
+                Map<String, Object> source = new HashMap<>(sVal.asMap());
+                Map<String, Object> rel = new HashMap<>(rVal.asMap());
+                Map<String, Object> target = new HashMap<>(tVal.asMap());
+                result.add(Map.of("source", source, "relation", rel, "target", target));
+            });
+            return result;
         }
     }
 
