@@ -1,8 +1,8 @@
 # KG Platform — 知识图谱管理平台
 
 > 项目全栈技术文档
-> 版本：1.1.0
-> 日期：2026-05-21
+> 版本：1.2.0
+> 日期：2026-05-22
 
 ---
 
@@ -54,21 +54,24 @@ d:\demo\
 │   │   ├── DashScopeProperties.java    # DashScope 大模型配置
 │   │   ├── DataInitializer.java         # 启动数据初始化
 │   │   └── Knife4jConfig.java           # API 文档配置
-│   ├── controller/                       # 13 个控制器
-│   │   ├── AuthController.java          # 认证管理
-│   │   ├── HomeController.java          # 系统首页
-│   │   ├── SysUserController.java       # 用户管理
-│   │   ├── SysRoleController.java       # 角色管理
+│   ├── controller/                       # 17 个控制器
+│   │   ├── AuthController.java           # 认证管理
+│   │   ├── HomeController.java           # 系统首页
+│   │   ├── SysUserController.java        # 用户管理
+│   │   ├── SysRoleController.java        # 角色管理
 │   │   ├── KnowledgeGraphController.java # 知识图谱管理
-│   │   ├── GraphModelController.java    # 图谱模型管理
-│   │   ├── CorpusController.java        # 语料管理
-│   │   ├── AnnotationController.java    # 标注管理
-│   │   ├── ModelTrainController.java    # 模型训练管理
-│   │   ├── ExtractController.java       # 知识抽取管理
+│   │   ├── GraphModelController.java     # 图谱模型管理
+│   │   ├── CorpusController.java         # 语料管理
+│   │   ├── AnnotationController.java      # 标注管理（标注记录）
+│   │   ├── AnnotationAuthController.java # 标注授权
+│   │   ├── ModelTrainController.java     # 模型训练管理
+│   │   ├── ExtractController.java        # 知识抽取管理（深度学习）
+│   │   ├── KosExtractController.java     # KOS 知识抽取
 │   │   ├── DataTransformController.java  # 数据转化管理
 │   │   ├── GraphExploreController.java   # 图谱探索
-│   │   ├── FileController.java          # 文件管理（头像）
-│   │   └── MinioController.java         # MinIO 文件管理
+│   │   ├── MultimodalDataController.java # 多模态数据更新
+│   │   ├── FileController.java           # 文件管理（头像）
+│   │   └── MinioController.java          # MinIO 文件管理
 │   ├── service/                          # 服务层（14 个 + 2 个存储服务）
 │   │   ├── SysUserService.java
 │   │   ├── SysRoleService.java
@@ -773,31 +776,38 @@ MinIO（文件存储）
   /home                          系统首页
   /system                        平台管理
     /system/user                 用户管理
-    /system/role                角色管理
-    /system/password            修改密码
+    /system/role                 角色管理
+    /system/password             修改密码
   /kg                            图谱项目管理
     /kg/graph                    知识图谱管理
-    /kg/model                   图谱模型管理
+    /kg/model                    图谱模型管理
   /data                          知识抽取与转化
-    /data/transform             （半）结构化数据转化
-    /data/kos                    基于KOS知识抽取
-      /data/kos/dl               深度学习知识抽取
-        /data/kos/dl/preprocess  数据标注与预处理
-          /data/kos/dl/preprocess/corpus      语料管理
-          /data/kos/dl/preprocess/auth        标注授权
-          /data/kos/dl/preprocess/annotate    数据标注
-          /data/kos/dl/preprocess/manage     标注管理
-        /data/kos/dl/training   模型训练与评估
-          /data/kos/dl/training/train         模型训练管理
-          /data/kos/dl/training/effect       训练效果
-        /data/kos/dl/extract    知识抽取
-    /data/llm                   基于LLM知识抽取
-    /data/multimodal            多模态数据更新
-  /explore                       图谱实例管理
-    /explore/graph              知识图谱探索
+    /data/transform              （半）结构化数据转化
+    /data/kos                    KOS知识抽取 [已实现]
+      /data/kos/dl               深度学习知识抽取 (wrapper)
+      /data/kos/dl/preprocess    预处理 (wrapper)
+        /data/kos/dl/preprocess/corpus         语料管理
+        /data/kos/dl/preprocess/auth           标注授权
+        /data/kos/dl/preprocess/annotate       数据标注
+        /data/kos/dl/preprocess/manage         标注管理
+      /data/kos/dl/training      训练 (wrapper)
+        /data/kos/dl/training/train            模型训练管理
+        /data/kos/dl/training/effect            训练效果
+      /data/kos/dl/extract       知识抽取 (wrapper)
+    /data/llm                    基于LLM知识抽取 (wrapper)
+      /data/llm/entity            实体识别
+      /data/llm/relation          关系抽取
+  /explore                        图谱实例管理
+    /explore/graph               知识图谱探索
+  /multimodal                    多模态数据更新 [待实现]
 ```
 
 **路由守卫**：访问 `/system/role` 时仅 ADMIN 角色可访问，其他页面需登录。
+
+**路由说明：**
+- 部分路由为 **wrapper 路由**，不渲染独立页面，仅做路由重定向：`extractIndex.vue`、`knowledgeExtract.vue`、`extractIntro.vue`、`index.vue`（KOS）、`preprocessIndex.vue`、`trainingIndex.vue`、`dlIndex.vue`、`llmExtract/index.vue` 等均为 wrapper 组件。
+- 标注授权路由 `/data/kos/dl/preprocess/auth` 实际对应 `annotationAuth.vue`。
+- 多模态数据更新页面（`multimodalUpdate.vue`）仅有占位文本，功能待实现。
 
 ### 6.2 API 层（Axios 封装）
 
@@ -1089,6 +1099,60 @@ npm run dev
 ---
 
 ## 十二、已知问题与修复记录
+
+### 2026-05-22
+
+#### 功能实现状态梳理
+
+本次梳理对照前端 27 个页面组件与后端 17 个控制器，基于代码现状标注了各项功能的实现状态。
+
+##### 已实现功能清单
+
+| 模块 | 功能 | 实现位置 |
+|------|------|----------|
+| 平台管理 | 用户 CRUD、重置密码、头像上传 | `SysUserController` + `userManage.vue` |
+| 平台管理 | 角色 CRUD | `SysRoleController` + `roleManage.vue` |
+| 平台管理 | 修改密码（管理员/普通用户双模式） | `system/passwordEdit.vue` |
+| 图谱项目 | 图谱 CRUD、存储配置（Neo4j/MinIO 参数） | `KnowledgeGraphController` + `graphManage.vue` |
+| 图谱项目 | 模型 CRUD、Schema 可视化构建 | `GraphModelController` + `modelManage.vue` |
+| 图谱项目 | OWL/RDF 文件导入预览 | `modelManage.vue` OWL 弹窗 |
+| 图谱项目 | 模型复制、导出 | `modelManage.vue` |
+| 语料管理 | 语料 CRUD、文件上传（支持 .txt/.json/.csv/.xml） | `CorpusController` + `corpusManage.vue` |
+| 标注授权 | 授权 CRUD、分配、生成记录、撤销/激活 | `AnnotationAuthController` + `annotationAuth.vue` |
+| 数据标注 | 实体/关系双模式标注台 | `AnnotationController` + `dataAnnotate.vue` |
+| 标注管理 | 批量生成记录、审核通过/驳回 | `annotationManage.vue` |
+| 模型训练 | 训练任务 CRUD、启动/停止、日志、指标 | `ModelTrainController` + `modelTrainManage.vue` |
+| 训练效果 | 指标卡片、多任务对比 | `modelEffect.vue` |
+| 深度学习抽取 | 抽取任务 CRUD、启动/停止、查看结果 | `ExtractController` + `extractIndex.vue` |
+| LLM 抽取 | 实体识别、关系抽取、同步直接抽取 | `ExtractController` + `entityRecognition.vue` / `relationExtract.vue` |
+| KOS 抽取 | KOS Schema 抽取 + ECharts 图谱预览 | `KosExtractController` + `kosExtractIndex.vue` |
+| 图谱探索 | ECharts 力导向图、节点搜索、关系过滤、路径分析、全屏、导出 PNG | `GraphExploreController` + `graphExplore/index.vue` |
+| 数据转化 | 转换任务 CRUD、执行、预览 | `DataTransformController` + `structTransform.vue` |
+| 多模态 | 后端 CRUD 接口（上传/关联/删除节点） | `MultimodalDataController`（前端 UI 待开发） |
+
+##### 待实现功能清单
+
+| 功能 | 说明 |
+|------|------|
+| 模型可视化1/2 | 图谱模型页面缺少独立的两种可视化布局算法 |
+| 清空模型 | 模型管理页面无清空操作 |
+| MinIO 图片展示 | 图谱详情页无图片展示功能 |
+| 同步 Brat | 语料管理页面无同步 Brat 标注工具功能 |
+| 关系数据库入图 | 半结构化转化无数据库直连导入 |
+| ETL-plugin | 半结构化转化无 ETL 插件执行 |
+| 标注结果导出 | 标注管理页面导出按钮无实际导出逻辑 |
+| 模型效果报告导出 | 训练效果页面导出按钮无实际导出逻辑 |
+| Prompt 配置 | LLM 抽取页面无 Prompt 模板配置输入框 |
+| 多模态数据更新 UI | `multimodalUpdate.vue` 仅有占位文本 |
+| 深度学习抽取：上传文本文件 | 抽取任务需选择已有语料 ID，尚不支持直接上传文本文件 |
+| 深度学习抽取：导出结果 | 抽取结果页面导出按钮无实际导出逻辑 |
+
+##### 后端已就绪（前端待开发）
+
+| 功能 | 接口路径 |
+|------|----------|
+| 多模态数据管理 | `POST/GET/DELETE /api/data/multimodal/*` |
+| 标注授权管理 | `POST/GET/PUT/DELETE /api/annotation/auth/*` |
 
 ### 2026-05-21
 
